@@ -3,20 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Cohort Table — Live Q&A API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: rooms
+    description: Room operations
+  - name: questions
+    description: Question operations
+  - name: ta
+    description: TA-only operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +29,875 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /rooms/{roomCode}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get room info
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Room info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /rooms/{roomCode}/pulse:
+    get:
+      operationId: getRoomPulse
+      tags: [rooms]
+      summary: Room live stats (member count, open questions, answered today)
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Room pulse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomPulse"
+
+  /rooms/{roomCode}/questions:
+    get:
+      operationId: listQuestions
+      tags: [questions]
+      summary: List questions in a room
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema: { type: string }
+        - name: view
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [rising, unanswered, answered, mine]
+            default: rising
+        - name: deviceId
+          in: query
+          required: false
+          schema: { type: string }
+          description: Anonymous device ID for "mine" view
+      responses:
+        "200":
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
+    post:
+      operationId: createQuestion
+      tags: [questions]
+      summary: Post a new question
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionInput"
+      responses:
+        "201":
+          description: Question created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /questions/{id}:
+    get:
+      operationId: getQuestion
+      tags: [questions]
+      summary: Get a single question with its replies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+        - name: deviceId
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Question with replies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /questions/{id}/vote:
+    post:
+      operationId: voteQuestion
+      tags: [questions]
+      summary: Upvote a question (idempotent; sends deviceId in body)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Updated vote count and whether viewer voted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteResult"
+    delete:
+      operationId: unvoteQuestion
+      tags: [questions]
+      summary: Remove upvote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Updated vote count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteResult"
+
+  /questions/{id}/replies:
+    post:
+      operationId: createReply
+      tags: [questions]
+      summary: Add a reply to a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplyInput"
+      responses:
+        "201":
+          description: Reply created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reply"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /replies/{id}/helpful:
+    post:
+      operationId: markReplyHelpful
+      tags: [questions]
+      summary: Mark a reply as helpful
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Updated helpful count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelpfulResult"
+
+  /questions/{id}/follow:
+    post:
+      operationId: followQuestion
+      tags: [questions]
+      summary: Follow a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Follow result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResult"
+    delete:
+      operationId: unfollowQuestion
+      tags: [questions]
+      summary: Unfollow a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Unfollow result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResult"
+
+  /questions/{id}/blocked:
+    post:
+      operationId: blockQuestion
+      tags: [questions]
+      summary: Mark yourself as blocked by a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Block result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockResult"
+    delete:
+      operationId: unblockQuestion
+      tags: [questions]
+      summary: Remove blocked signal from a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Unblock result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockResult"
+
+  /ta/login:
+    post:
+      operationId: taLogin
+      tags: [ta]
+      summary: TA login with name and shared password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaCredentials"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /ta/logout:
+    post:
+      operationId: taLogout
+      tags: [ta]
+      summary: TA logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /ta/me:
+    get:
+      operationId: getTaMe
+      tags: [ta]
+      summary: Get current TA session info
+      responses:
+        "200":
+          description: TA info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaSession"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /ta/questions/{id}/claim:
+    post:
+      operationId: claimQuestion
+      tags: [ta]
+      summary: TA claims a question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Claim result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      operationId: releaseQuestion
+      tags: [ta]
+      summary: TA releases a claim
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Release result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /ta/question-groups:
+    get:
+      operationId: listQuestionGroups
+      tags: [ta]
+      summary: List all question groups
+      parameters:
+        - name: roomCode
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuestionGroup"
+    post:
+      operationId: createQuestionGroup
+      tags: [ta]
+      summary: Create a new question group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionGroupInput"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionGroup"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /ta/question-groups/{id}/members:
+    post:
+      operationId: addGroupMember
+      tags: [ta]
+      summary: Add a question to a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupMemberInput"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionGroup"
+
+  /ta/question-groups/{id}/members/{questionId}:
+    delete:
+      operationId: removeGroupMember
+      tags: [ta]
+      summary: Remove a question from a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+        - name: questionId
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionGroup"
+
+  /ta/question-groups/{id}/reply:
+    post:
+      operationId: createGroupReply
+      tags: [ta]
+      summary: Post a shared group reply visible on every card in the group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupReplyInput"
+      responses:
+        "201":
+          description: Group reply created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupReply"
+
+  /ta/questions/{id}/flag:
+    post:
+      operationId: flagQuestion
+      tags: [ta]
+      summary: Flag and remove abusive/spam content
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlagInput"
+      responses:
+        "200":
+          description: Flagged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /ta/questions/{id}/live-queue:
+    post:
+      operationId: sendToLiveQueue
+      tags: [ta]
+      summary: Send a high-interest question to the instructor live queue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Sent to live queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /ta/desk/{roomCode}:
+    get:
+      operationId: getTaDesk
+      tags: [ta]
+      summary: Get TA desk data — my claims, needs-a-TA questions, groups, and live queue
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: TA desk data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaDesk"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
+        status: { type: string }
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    SuccessResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+        message: { type: ["string", "null"] }
+
+    Room:
+      type: object
+      required: [id, roomCode, cohortName, sessionName, isLive, questionCount]
+      properties:
+        id: { type: number }
+        roomCode: { type: string }
+        cohortName: { type: string }
+        sessionName: { type: string }
+        isLive: { type: boolean }
+        questionCount: { type: number }
+        liveVoteThreshold: { type: number }
+
+    RoomPulse:
+      type: object
+      required: [memberCount, openQuestions, answeredToday, liveVoteThreshold]
+      properties:
+        memberCount: { type: number }
+        openQuestions: { type: number }
+        answeredToday: { type: number }
+        liveVoteThreshold: { type: number }
+
+    Question:
+      type: object
+      required: [id, roomCode, title, authorLabel, isAnonymous, voteCount, followCount, blockedCount, replyCount, hasReplies, status, createdAt]
+      properties:
+        id: { type: number }
+        roomCode: { type: string }
+        title: { type: string }
+        body: { type: ["string", "null"] }
+        authorLabel: { type: string }
+        isAnonymous: { type: boolean }
+        voteCount: { type: number }
+        followCount: { type: number }
+        blockedCount: { type: number }
+        replyCount: { type: number }
+        hasReplies: { type: boolean }
         status:
           type: string
-      required:
-        - status
+          enum: [unanswered, answered]
+        tags:
+          type: array
+          items: { type: string }
+        claimedByTa: { type: ["string", "null"] }
+        groupId: { type: ["number", "null"] }
+        groupTitle: { type: ["string", "null"] }
+        isInLiveQueue: { type: boolean }
+        viewerVoted: { type: boolean }
+        viewerFollows: { type: boolean }
+        viewerBlocked: { type: boolean }
+        viewerAsked: { type: boolean }
+        viewerReplied: { type: boolean }
+        lastReplyAt: { type: ["string", "null"] }
+        risingScore: { type: number }
+        createdAt: { type: string }
 
+    QuestionDetail:
+      type: object
+      required: [id, roomCode, title, authorLabel, isAnonymous, voteCount, followCount, blockedCount, replyCount, hasReplies, status, createdAt, replies]
+      properties:
+        id: { type: number }
+        roomCode: { type: string }
+        title: { type: string }
+        body: { type: ["string", "null"] }
+        authorLabel: { type: string }
+        isAnonymous: { type: boolean }
+        voteCount: { type: number }
+        followCount: { type: number }
+        blockedCount: { type: number }
+        replyCount: { type: number }
+        hasReplies: { type: boolean }
+        status:
+          type: string
+          enum: [unanswered, answered]
+        tags:
+          type: array
+          items: { type: string }
+        claimedByTa: { type: ["string", "null"] }
+        groupId: { type: ["number", "null"] }
+        groupTitle: { type: ["string", "null"] }
+        isInLiveQueue: { type: boolean }
+        viewerVoted: { type: boolean }
+        viewerFollows: { type: boolean }
+        viewerBlocked: { type: boolean }
+        viewerAsked: { type: boolean }
+        viewerReplied: { type: boolean }
+        lastReplyAt: { type: ["string", "null"] }
+        risingScore: { type: number }
+        createdAt: { type: string }
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reply"
+        groupReply:
+          $ref: "#/components/schemas/GroupReply"
+
+    Reply:
+      type: object
+      required: [id, questionId, body, authorLabel, isTa, helpfulCount, createdAt]
+      properties:
+        id: { type: number }
+        questionId: { type: number }
+        body: { type: string }
+        authorLabel: { type: string }
+        isTa: { type: boolean }
+        helpfulCount: { type: number }
+        viewerMarkedHelpful: { type: boolean }
+        createdAt: { type: string }
+
+    GroupReply:
+      type: object
+      required: [id, groupId, body, taName, createdAt]
+      properties:
+        id: { type: number }
+        groupId: { type: number }
+        body: { type: string }
+        taName: { type: string }
+        createdAt: { type: string }
+
+    QuestionGroup:
+      type: object
+      required: [id, title, questionIds, questionCount, createdAt]
+      properties:
+        id: { type: number }
+        title: { type: string }
+        questionIds:
+          type: array
+          items: { type: number }
+        questionCount: { type: number }
+        groupReply:
+          $ref: "#/components/schemas/GroupReply"
+        createdAt: { type: string }
+
+    TaSession:
+      type: object
+      required: [taName, loggedIn]
+      properties:
+        taName: { type: string }
+        loggedIn: { type: boolean }
+
+    TaDesk:
+      type: object
+      required: [myClaims, needsATa, questionGroups, liveQueue]
+      properties:
+        myClaims:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        needsATa:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        questionGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionGroup"
+        liveQueue:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+
+    ClaimResult:
+      type: object
+      required: [claimed, claimedByTa]
+      properties:
+        claimed: { type: boolean }
+        claimedByTa: { type: ["string", "null"] }
+
+    VoteResult:
+      type: object
+      required: [voteCount, viewerVoted]
+      properties:
+        voteCount: { type: number }
+        viewerVoted: { type: boolean }
+
+    FollowResult:
+      type: object
+      required: [followCount, viewerFollows]
+      properties:
+        followCount: { type: number }
+        viewerFollows: { type: boolean }
+
+    BlockResult:
+      type: object
+      required: [blockedCount, viewerBlocked]
+      properties:
+        blockedCount: { type: number }
+        viewerBlocked: { type: boolean }
+
+    HelpfulResult:
+      type: object
+      required: [helpfulCount, viewerMarkedHelpful]
+      properties:
+        helpfulCount: { type: number }
+        viewerMarkedHelpful: { type: boolean }
+
+    QuestionInput:
+      type: object
+      required: [title, deviceId]
+      properties:
+        title: { type: string, minLength: 3 }
+        body: { type: string }
+        authorName: { type: string }
+        isAnonymous: { type: boolean }
+        tags:
+          type: array
+          items: { type: string }
+        deviceId: { type: string }
+
+    ReplyInput:
+      type: object
+      required: [body, deviceId]
+      properties:
+        body: { type: string, minLength: 1 }
+        authorName: { type: string }
+        deviceId: { type: string }
+
+    DeviceAction:
+      type: object
+      required: [deviceId]
+      properties:
+        deviceId: { type: string }
+
+    TaCredentials:
+      type: object
+      required: [name, password]
+      properties:
+        name: { type: string }
+        password: { type: string }
+
+    QuestionGroupInput:
+      type: object
+      required: [title, questionIds]
+      properties:
+        title: { type: string, minLength: 1 }
+        questionIds:
+          type: array
+          items: { type: number }
+
+    GroupMemberInput:
+      type: object
+      required: [questionId]
+      properties:
+        questionId: { type: number }
+
+    GroupReplyInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1 }
+
+    FlagInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }

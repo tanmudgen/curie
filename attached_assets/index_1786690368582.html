@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cohort Table — Live Q&A</title>
+  <style>
+    :root{
+      --ink:#17313a;--soft:#63716d;--paper:#eee6d8;--sheet:#fbf6e9;--green:#2c725d;
+      --coral:#c96f51;--gold:#d2a94f;--line:rgba(31,53,50,.16);--serif:Georgia,"Times New Roman",serif;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --ease:cubic-bezier(.18,.75,.2,1)
+    }
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:var(--sans);color:var(--ink);background:var(--paper)}
+    button,input{font:inherit}button{color:inherit}button:focus-visible,input:focus-visible{outline:3px solid rgba(44,114,93,.36);outline-offset:3px}
+    .world{min-height:100svh;background:radial-gradient(circle at 9% 4%,rgba(255,255,255,.72),transparent 28%),radial-gradient(circle at 91% 78%,rgba(44,114,93,.09),transparent 29%),repeating-linear-gradient(0deg,rgba(35,45,37,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,#f0eadf,#dfd6c6);position:relative}
+    .world:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.2;mix-blend-mode:multiply;background:repeating-radial-gradient(circle at 20% 30%,rgba(49,43,31,.09) 0 .4px,transparent .6px 3px);background-size:7px 7px}
+    .masthead{height:70px;padding:0 clamp(18px,4vw,58px);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid var(--line);position:relative;z-index:10;background:rgba(238,230,216,.72);backdrop-filter:blur(10px)}
+    .brand,.academy{text-transform:uppercase;letter-spacing:.2em;font-size:10px;font-weight:850}.brand:before{content:"";display:inline-block;width:9px;height:9px;margin-right:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--paper),0 0 0 4px var(--green)}
+    .academy{justify-self:end;color:var(--soft);font-size:8px}.session{display:flex;align-items:center;gap:9px;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--soft)}.session i{width:7px;height:7px;border-radius:50%;background:#d85a4a;box-shadow:0 0 0 5px rgba(216,90,74,.1);animation:pulse 1.8s infinite}@keyframes pulse{50%{box-shadow:0 0 0 9px rgba(216,90,74,0)}}
+    .layout{width:min(1500px,95vw);margin:auto;display:grid;grid-template-columns:210px minmax(560px,790px) 250px;justify-content:center;gap:clamp(22px,3vw,48px);padding:36px 0 70px}
+    .left,.right{padding-top:8px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;color:var(--green);font-size:8px;font-weight:900}.left h2,.right h2{font:normal 25px/1 var(--serif);letter-spacing:-.03em;margin:12px 0 10px}.muted{font-size:11px;line-height:1.55;color:var(--soft)}
+    .pulse-card{margin-top:25px;padding:17px;border:1px solid var(--line);border-radius:8px;background:rgba(250,245,233,.48);box-shadow:0 9px 18px rgba(58,55,43,.06)}.pulse-card div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.pulse-card div:last-child{border:0}.pulse-card strong{font:normal 18px var(--serif);color:var(--green)}
+    .room-code{margin-top:18px;padding-top:15px;border-top:1px solid var(--line);font-size:9px;color:var(--soft)}.room-code b{display:block;margin-top:5px;font:normal 19px var(--serif);letter-spacing:.12em;color:var(--ink)}
+    .composer{position:relative;border:1px solid rgba(65,55,40,.16);border-left:6px solid var(--coral);border-radius:5px 17px 17px 6px;background:radial-gradient(circle at 91% 5%,rgba(255,255,255,.8),transparent 24%),repeating-linear-gradient(0deg,rgba(70,60,42,.022) 0 1px,transparent 1px 6px),#f8efd6;box-shadow:0 24px 48px rgba(61,55,41,.15),0 4px 9px rgba(61,55,41,.08);padding:26px 28px 23px;animation:sheetLand .68s var(--ease) both}
+    @keyframes sheetLand{from{opacity:0;transform:translateY(-85px) rotate(-2deg) scale(.97)}72%{opacity:1;transform:translateY(6px) rotate(.4deg)}to{transform:none}}
+    .tape{position:absolute;width:95px;height:24px;left:50%;top:-8px;transform:translateX(-50%) rotate(-1.4deg);background:rgba(211,195,152,.69);box-shadow:0 1px 2px rgba(70,59,41,.1)}
+    .composer-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.composer-top span{text-transform:uppercase;letter-spacing:.15em;color:#a9543e;font-size:8px;font-weight:900}.composer-top small{color:var(--soft);font-size:9px}
+    .ask-row{display:grid;grid-template-columns:1fr auto;gap:10px}.ask-row input{min-width:0;border:0;border-bottom:1px solid rgba(33,49,43,.24);background:transparent;padding:10px 2px 12px;font:normal 24px/1.2 var(--serif);color:var(--ink)}.ask-row input::placeholder{color:rgba(23,49,58,.36)}
+    .ask-row button,.dark-button{border:0;border-radius:999px;background:var(--ink);color:#fbf4e6;padding:0 18px;font-size:9px;font-weight:850;letter-spacing:.05em;cursor:pointer;transition:.2s var(--ease)}.ask-row button:hover,.dark-button:hover{transform:translateY(-3px);box-shadow:0 9px 17px rgba(23,49,58,.2)}
+    .duplicate{display:none;margin-top:14px;padding:12px 13px;border:1px solid rgba(44,114,93,.22);border-radius:8px;background:rgba(255,255,255,.4);font-size:10px;color:var(--soft);animation:unfold .32s var(--ease) both}.duplicate.show{display:flex;align-items:center;justify-content:space-between;gap:12px}.duplicate b{display:block;color:var(--ink);font:normal 14px var(--serif);margin-bottom:3px}.duplicate button{border:0;background:transparent;color:var(--green);font-size:8px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;white-space:nowrap}
+    @keyframes unfold{from{opacity:0;transform:scaleY(.4);transform-origin:top}to{opacity:1;transform:none}}
+    .queue-tools{display:flex;justify-content:space-between;align-items:center;margin:25px 3px 13px}.tabs{display:flex;gap:6px}.tabs button{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.24);padding:8px 12px;color:var(--soft);font-size:8px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer}.tabs button.active{background:var(--ink);border-color:var(--ink);color:#faf3e5}.queue-tools>span{font-size:9px;color:var(--soft)}
+    .question-list{display:grid;gap:12px}.question-card{--accent:var(--green);display:grid;grid-template-columns:76px 1fr;border:1px solid rgba(23,49,58,.18);border-radius:9px 17px 15px 7px;background:radial-gradient(circle at 96% 2%,rgba(255,255,255,.86),transparent 24%),repeating-linear-gradient(0deg,rgba(23,49,58,.016) 0 1px,transparent 1px 5px),#fbf6e9;box-shadow:0 17px 30px rgba(58,55,43,.12),0 3px 7px rgba(58,55,43,.07);overflow:hidden;animation:cardDrop .58s calc(var(--i)*70ms) var(--ease) both;transition:transform .26s var(--ease),box-shadow .26s var(--ease),opacity .2s}
+    @keyframes cardDrop{0%{opacity:0;transform:translateY(-100px) rotate(-3deg) scale(.96)}72%{opacity:1;transform:translateY(5px) rotate(.4deg)}86%{transform:translateY(-2px) rotate(-.2deg)}100%{transform:none}}
+    .question-card:hover{transform:translateY(-3px);box-shadow:0 24px 38px rgba(58,55,43,.15),0 4px 9px rgba(58,55,43,.08)}.question-card.hidden{display:none}
+    .vote-column{border-right:1px solid var(--line);background:rgba(222,213,195,.38);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}.vote{width:46px;height:58px;border:1px solid rgba(44,114,93,.28);border-radius:50% 50% 8px 8px;background:#faf4e6;cursor:pointer;color:var(--green);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 5px 9px rgba(58,55,43,.08)}.vote span{font-size:14px;line-height:1}.vote strong{font:normal 20px var(--serif)}.vote.voted{background:var(--green);color:#fff8e9;animation:votePop .38s var(--ease)}@keyframes votePop{50%{transform:translateY(-8px) rotate(-4deg) scale(1.08)}}.vote-column small{margin-top:8px;font-size:7px;text-transform:uppercase;letter-spacing:.09em;color:var(--soft)}
+    .question-body{padding:18px 20px 17px;border-top:4px solid var(--accent)}.q-meta{display:flex;justify-content:space-between;gap:12px;color:var(--soft);font-size:8px;text-transform:uppercase;letter-spacing:.09em}.q-meta b{color:var(--accent)}.question-body h3{font:normal 24px/1.1 var(--serif);letter-spacing:-.025em;margin:14px 0 9px}.question-body>p{font-size:11px;line-height:1.5;color:var(--soft);margin:0 0 14px}.tags{display:flex;gap:6px;flex-wrap:wrap}.tags span{border:1px solid var(--line);border-radius:999px;padding:5px 8px;font-size:7px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft)}
+    .card-actions{display:flex;align-items:center;gap:13px;margin-top:15px;padding-top:13px;border-top:1px solid var(--line)}.card-actions button{border:0;background:transparent;padding:0;color:var(--soft);font-size:8px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.card-actions button:hover{color:var(--green)}.card-actions .claim{margin-left:auto;color:var(--green);font-weight:900}.claim.claimed{padding:5px 8px;border:1px solid var(--coral);border-radius:2px;color:var(--coral);transform:rotate(-2deg);animation:stamp .32s var(--ease)}@keyframes stamp{from{opacity:0;transform:scale(1.6) rotate(-8deg)}to{opacity:1;transform:rotate(-2deg)}}
+    .verified-answer{margin-top:15px;padding:14px 15px;border-left:3px solid var(--green);background:rgba(44,114,93,.065);border-radius:2px 8px 8px 2px;animation:unfold .45s var(--ease) both}.verified-answer span{display:flex;align-items:center;gap:7px;color:var(--green);font-size:7px;text-transform:uppercase;letter-spacing:.1em;font-weight:900}.verified-answer p{font-size:10px;line-height:1.55;color:var(--ink);margin:8px 0 0}
+    .desk{margin-top:24px;display:grid;gap:9px}.desk-card{padding:14px;border:1px solid var(--line);border-left:4px solid var(--coral);border-radius:5px 9px 9px 5px;background:#faf4e7;box-shadow:0 8px 14px rgba(58,55,43,.08);transform:rotate(calc((var(--d) - 1)*.7deg));animation:cardDrop .52s calc(var(--d)*80ms) var(--ease) both}.desk-card span{font-size:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--coral);font-weight:900}.desk-card b{display:block;font:normal 15px/1.2 var(--serif);margin:7px 0}.desk-card small{color:var(--soft);font-size:8px}.desk-card button{width:100%;margin-top:11px;padding:8px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--green);font-size:7px;text-transform:uppercase;letter-spacing:.09em;cursor:pointer}
+    .live-threshold{margin-top:19px;padding:16px;border:1px dashed rgba(44,114,93,.32);border-radius:9px;text-align:center}.live-threshold strong{display:block;font:normal 32px var(--serif);color:var(--green)}.live-threshold span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--soft)}
+    .toast{position:fixed;z-index:50;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;border-radius:999px;background:var(--ink);color:#fbf4e6;padding:11px 16px;font-size:9px;box-shadow:0 12px 24px rgba(23,49,58,.24);transition:.25s var(--ease)}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:1120px){.layout{grid-template-columns:180px minmax(540px,760px)}.right{grid-column:1/-1;display:grid;grid-template-columns:180px 1fr;gap:26px;border-top:1px solid var(--line);padding-top:24px}.right>p,.right>.live-threshold{display:none}.desk{margin:0;grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:790px){.masthead{grid-template-columns:1fr auto;height:62px}.session{display:none}.layout{width:min(680px,94vw);grid-template-columns:1fr;padding-top:22px}.left{display:none}.right{display:none}.ask-row{grid-template-columns:1fr}.ask-row button{padding:12px}.question-card{grid-template-columns:64px 1fr}.queue-tools{overflow-x:auto;gap:16px}.queue-tools>span{display:none}}
+    @media(max-width:520px){.academy{display:none}.masthead{grid-template-columns:1fr}.composer{padding:24px 18px 18px}.ask-row input{font-size:20px}.tabs{overflow-x:auto}.tabs button{white-space:nowrap}.question-card{grid-template-columns:54px 1fr}.vote-column{padding:7px}.vote{width:39px;height:52px}.question-body{padding:15px 14px}.question-body h3{font-size:21px}.q-meta span:last-child{display:none}.card-actions{gap:9px;flex-wrap:wrap}.card-actions .claim{margin-left:0}.duplicate{align-items:flex-start}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <main class="world">
+    <header class="masthead">
+      <div class="brand">Cohort Table</div>
+      <div class="session"><i></i> Live · Agent Builders · Week 4</div>
+      <div class="academy">Gen Academy</div>
+    </header>
+
+    <section class="layout">
+      <aside class="left">
+        <span class="eyebrow">Room pulse</span><h2>The questions behind the chat.</h2>
+        <p class="muted">Votes gather repeated confusion into one visible place, while TAs divide the work.</p>
+        <div class="pulse-card"><div><span>In the room</span><strong>38</strong></div><div><span>Open questions</span><strong id="open-count">7</strong></div><div><span>Answered today</span><strong>14</strong></div></div>
+        <div class="room-code">Share this room<b>AGENTS-W4</b></div>
+      </aside>
+
+      <section class="center">
+        <form class="composer" id="question-form">
+          <span class="tape" aria-hidden="true"></span>
+          <div class="composer-top"><span>Put a question on the table</span><small>Visible to the whole cohort</small></div>
+          <div class="ask-row"><input id="question-input" aria-label="Your question" autocomplete="off" placeholder="What are you stuck on?"/><button type="submit">Ask the room <b>→</b></button></div>
+          <div class="duplicate" id="duplicate"><div><b>This may already be on the table</b><span>“Why does my agent keep calling the same tool?” · 12 votes</span></div><button type="button" id="join-duplicate">Join it instead</button></div>
+        </form>
+
+        <div class="queue-tools"><div class="tabs" role="tablist"><button class="active" data-filter="all">Rising</button><button data-filter="unanswered">Unanswered</button><button data-filter="answered">Answered</button></div><span>Sorted by votes + waiting time</span></div>
+
+        <div class="question-list" id="question-list">
+          <article class="question-card" data-status="unanswered" style="--i:0;--accent:#c96f51">
+            <div class="vote-column"><button class="vote" aria-label="Upvote question"><span>↑</span><strong>12</strong></button><small>votes</small></div>
+            <div class="question-body"><div class="q-meta"><span><b>Blocked</b> · asked by Maya</span><span>Waiting 6 min</span></div><h3>Why does my agent keep calling the same tool in a loop?</h3><p>I added a stop condition, but it still returns to search instead of handing the final answer back.</p><div class="tags"><span>Agents</span><span>Tool calling</span><span>6 students blocked</span></div><div class="card-actions"><button>Follow · 8</button><button class="answer">Add an answer</button><button class="claim">Claim as TA</button></div></div>
+          </article>
+
+          <article class="question-card" data-status="answered" style="--i:1;--accent:#2c725d">
+            <div class="vote-column"><button class="vote" aria-label="Upvote question"><span>↑</span><strong>9</strong></button><small>votes</small></div>
+            <div class="question-body"><div class="q-meta"><span><b>TA verified</b> · asked by Luis</span><span>Answered 2 min ago</span></div><h3>When should I use memory instead of passing context in the prompt?</h3><p>I understand both technically, but I am not sure what should persist between separate runs.</p><div class="tags"><span>Memory</span><span>Architecture</span></div><div class="verified-answer"><span>✓ Verified by Nina · TA</span><p>Pass context when it belongs to the current task. Use memory only when the information should remain useful in a later session—preferences, stable facts or prior decisions.</p></div><div class="card-actions"><button>Helpful · 11</button><button>Reply</button><button class="claim claimed">Resolved</button></div></div>
+          </article>
+
+          <article class="question-card" data-status="unanswered" style="--i:2;--accent:#d2a94f">
+            <div class="vote-column"><button class="vote" aria-label="Upvote question"><span>↑</span><strong>6</strong></button><small>votes</small></div>
+            <div class="question-body"><div class="q-meta"><span><b>Rising</b> · asked anonymously</span><span>Waiting 3 min</span></div><h3>Is there a clean way to inspect what the model passed into each tool?</h3><p>The final output looks right, but I want to understand the intermediate calls before I trust it.</p><div class="tags"><span>Tracing</span><span>Debugging</span></div><div class="card-actions"><button>Follow · 4</button><button class="answer">Add an answer</button><button class="claim">Claim as TA</button></div></div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="right">
+        <div><span class="eyebrow">TA desk</span><h2>Divide the swarm.</h2><p class="muted">Claiming a card tells the other TAs that someone is already working on it.</p></div>
+        <div class="desk"><article class="desk-card" style="--d:0"><span>Claimed by Noah</span><b>Agent tool loop</b><small>Drafting an example now</small><button class="live">Send to answer live</button></article><article class="desk-card" style="--d:1"><span>Peer answer waiting</span><b>Vector database dimensions</b><small>Verify or leave feedback</small><button>Review answer</button></article></div>
+        <div class="live-threshold"><strong>12</strong><span>votes · answer this live?</span><button class="dark-button live" style="margin-top:12px;padding:10px 14px">Send to instructor</button></div>
+      </aside>
+    </section>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <script>
+    const list=document.getElementById('question-list');
+    const input=document.getElementById('question-input');
+    const duplicate=document.getElementById('duplicate');
+    const toast=document.getElementById('toast');
+    const showToast=(message)=>{toast.textContent=message;toast.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>toast.classList.remove('show'),1900)};
+
+    document.addEventListener('click',(event)=>{
+      const vote=event.target.closest('.vote');
+      if(vote){const count=vote.querySelector('strong');const wasVoted=vote.classList.toggle('voted');count.textContent=Number(count.textContent)+(wasVoted?1:-1);showToast(wasVoted?'Your vote joined the table':'Vote removed');}
+      const claim=event.target.closest('.claim');
+      if(claim&&!claim.textContent.includes('Resolved')){const claimed=claim.classList.toggle('claimed');claim.textContent=claimed?'Claimed by you':'Claim as TA';showToast(claimed?'This question is now on your desk':'Question returned to the queue');}
+      if(event.target.closest('.answer'))showToast('Answer composer would unfold here');
+      if(event.target.closest('.live'))showToast('Sent to the instructor’s live queue');
+    });
+
+    document.querySelectorAll('.tabs button').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('.tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');
+      document.querySelectorAll('.question-card').forEach(card=>card.classList.toggle('hidden',button.dataset.filter!=='all'&&card.dataset.status!==button.dataset.filter));
+    }));
+
+    input.addEventListener('input',()=>duplicate.classList.toggle('show',/agent|tool|loop/i.test(input.value)&&input.value.length>9));
+    document.getElementById('join-duplicate').addEventListener('click',()=>{duplicate.classList.remove('show');input.value='';const first=list.querySelector('.question-card');first.scrollIntoView({behavior:'smooth',block:'center'});first.querySelector('.vote').click();});
+    document.getElementById('question-form').addEventListener('submit',(event)=>{
+      event.preventDefault();const text=input.value.trim();if(!text){input.focus();return}
+      const card=document.createElement('article');card.className='question-card';card.dataset.status='unanswered';card.style.cssText='--i:0;--accent:#73558e';
+      card.innerHTML='<div class="vote-column"><button class="vote" aria-label="Upvote question"><span>↑</span><strong>1</strong></button><small>votes</small></div><div class="question-body"><div class="q-meta"><span><b>Just asked</b> · asked by you</span><span>Waiting now</span></div><h3></h3><p>Add context or a code snippet so the cohort can help faster.</p><div class="tags"><span>New question</span></div><div class="card-actions"><button>Follow · 1</button><button class="answer">Add context</button><button class="claim">Claim as TA</button></div></div>';
+      card.querySelector('h3').textContent=text;list.prepend(card);input.value='';duplicate.classList.remove('show');document.getElementById('open-count').textContent=Number(document.getElementById('open-count').textContent)+1;showToast('Your question landed on the table');
+    });
+  </script>
+</body>
+</html>

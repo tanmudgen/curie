@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Cohort Table"
+description = "Cohort Table is a live Q&A app for Zoom classes. Students post questions anonymously, upvote, mark themselves blocked, and reply. TAs get a private slide-out desk to claim questions, create groups, and route high-vote questions to the instructor. The UI has a tactile paper-table aesthetic with hyper-realistic card animations."
+version = "1.0.0"
+id = "artifacts/cohort-table"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19082
+
+[services.development]
+run = "pnpm --filter @workspace/cohort-table run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cohort-table", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/cohort-table/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19082"
+BASE_PATH = "/"
