@@ -45,15 +45,20 @@ export function LandingPage() {
             </label>
             
             <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-                required
-                autoComplete="name"
-                className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
-              />
+              <div className="flex flex-col gap-1">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  required
+                  autoComplete="name"
+                  className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
+                />
+                {!name.trim() && (
+                  <span className="text-[9px] text-[#a9543e] tracking-wide">Required — your name appears on every question you ask</span>
+                )}
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <input

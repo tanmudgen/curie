@@ -109,7 +109,7 @@ export function MentionInput({
               <span className="flex-1 font-medium truncate">{p.name}</span>
               {p.isTa && (
                 <span className="shrink-0 text-[7px] font-black uppercase tracking-wider bg-primary text-primary-foreground px-[5px] py-[2px] rounded-[2px]">
-                  TA
+                  TGA
                 </span>
               )}
             </li>
