@@ -175,4 +175,29 @@ router.post("/rooms/:roomCode/questions", async (req, res): Promise<void> => {
   }));
 });
 
+// GET /rooms/:roomCode/participants
+router.get("/rooms/:roomCode/participants", async (req, res): Promise<void> => {
+  const roomCode = req.params.roomCode;
+  if (!roomCode) { res.status(400).json({ error: "Missing roomCode" }); return; }
+
+  const result = await pool.query(`
+    SELECT name, bool_or(is_ta) AS is_ta
+    FROM (
+      SELECT q.author_label AS name, false AS is_ta
+      FROM questions q
+      WHERE q.room_code = $1 AND q.is_anonymous = false AND q.is_flagged = false
+      UNION ALL
+      SELECT r.author_label AS name, r.is_ta
+      FROM replies r
+      JOIN questions q ON q.id = r.question_id
+      WHERE q.room_code = $1 AND r.is_flagged = false
+    ) combined
+    WHERE name IS NOT NULL AND name <> '' AND name <> 'Anonymous'
+    GROUP BY name
+    ORDER BY name ASC
+  `, [roomCode]);
+
+  res.json(result.rows.map((r) => ({ name: r.name as string, isTa: r.is_ta as boolean })));
+});
+
 export default router;

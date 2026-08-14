@@ -15,11 +15,14 @@ import {
   getGetQuestionQueryKey
 } from '@workspace/api-client-react';
 import { useDeviceId } from '@/hooks/use-device-id';
+import { useParticipants } from '@/hooks/use-participants';
+import { MentionInput } from './mention-input';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 
 export function QuestionCard({ question, index, roomCode }: { question: Question, index: number, roomCode: string }) {
   const deviceId = useDeviceId();
+  const participants = useParticipants(roomCode);
   const queryClient = useQueryClient();
   
   const vote = useVoteQuestion();
@@ -205,11 +208,12 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
               onSubmit={submitReply}
             >
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <MentionInput
                   value={replyBody}
-                  onChange={(e) => setReplyBody(e.target.value)}
-                  placeholder="Add an answer or context..." 
+                  onChange={setReplyBody}
+                  participants={participants}
+                  placeholder="Add an answer or context… type @ to ping someone"
+                  onSubmit={() => submitReply({ preventDefault: () => {} } as React.FormEvent)}
                   className="flex-1 bg-[rgba(255,255,255,0.5)] border border-border rounded-md px-3 py-2 text-[11px] outline-none focus:border-primary"
                 />
                 <button type="submit" disabled={createReply.isPending} className="dark-button text-[8px] py-1 px-3 min-h-0">

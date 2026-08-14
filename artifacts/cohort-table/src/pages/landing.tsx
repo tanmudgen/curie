@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
+import { useDisplayName } from '@/hooks/use-display-name';
 
 export function LandingPage() {
   const [, setLocation] = useLocation();
   const [roomCode, setRoomCode] = useState('');
+  const { name, setName } = useDisplayName();
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = (e: React.FormEvent, code?: string) => {
     e.preventDefault();
-    if (roomCode.trim()) {
-      setLocation(`/room/${roomCode.trim().toUpperCase()}`);
-    }
+    const target = (code ?? roomCode).trim().toUpperCase();
+    if (!target || !name.trim()) return;
+    setName(name.trim());
+    setLocation(`/room/${target}`);
   };
+
+  const canJoin = roomCode.trim().length > 0 && name.trim().length > 0;
+  const canQuickJoin = name.trim().length > 0;
 
   return (
     <main className="world flex flex-col items-center justify-center p-6 text-center min-h-[100dvh]">
@@ -27,33 +33,45 @@ export function LandingPage() {
         </div>
         
         <h1 className="font-serif text-4xl md:text-5xl leading-tight tracking-tight mb-8">
-          The questions behind the chat.
+          Pull up a chair.
         </h1>
         
         <form onSubmit={handleJoin} className="flex flex-col gap-4 relative">
           <div className="relative border border-[rgba(65,55,40,0.16)] border-l-[6px] border-l-destructive rounded-[5px_17px_17px_6px] composer-bg shadow-[0_24px_48px_rgba(61,55,41,0.15),0_4px_9px_rgba(61,55,41,0.08)] p-6 md:p-8">
             <span className="absolute w-[95px] h-[24px] left-1/2 -top-[8px] -translate-x-1/2 -rotate-[1.4deg] bg-[rgba(211,195,152,0.69)] shadow-[0_1px_2px_rgba(70,59,41,0.1)]" aria-hidden="true" />
             
-            <label htmlFor="roomCode" className="block text-left uppercase tracking-[0.15em] text-[#a9543e] text-[8px] font-black mb-4">
-              Enter Room Code
+            <label className="block text-left uppercase tracking-[0.15em] text-[#a9543e] text-[8px] font-black mb-4">
+              Take a seat
             </label>
             
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-4">
               <input
-                id="roomCode"
                 type="text"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
-                placeholder="e.g. AGENTS-W4"
-                className="flex-1 min-w-0 border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-2xl outline-none placeholder:text-[rgba(23,49,58,0.36)] uppercase"
-                autoComplete="off"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+                autoComplete="name"
+                className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
               />
-              <button 
-                type="submit"
-                className="dark-button mt-4 sm:mt-0 whitespace-nowrap self-end sm:self-auto py-3 sm:py-0"
-              >
-                Join the table <b>→</b>
-              </button>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value)}
+                  placeholder="Room code — e.g. AGENTS-W4"
+                  autoComplete="off"
+                  className="flex-1 min-w-0 border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)] uppercase"
+                />
+                <button 
+                  type="submit"
+                  disabled={!canJoin}
+                  className="dark-button mt-4 sm:mt-0 whitespace-nowrap self-end sm:self-auto py-3 sm:py-0 disabled:opacity-40"
+                >
+                  Join the table <b>→</b>
+                </button>
+              </div>
             </div>
           </div>
         </form>
@@ -61,11 +79,15 @@ export function LandingPage() {
         <div className="mt-12 flex flex-col items-center gap-3">
           <span className="uppercase tracking-[0.1em] text-[9px] text-muted-foreground">Quick join</span>
           <button 
-            onClick={() => setLocation('/room/AGENTS-W4')}
-            className="border border-border rounded-full px-6 py-2 text-[10px] uppercase tracking-widest bg-[rgba(255,255,255,0.4)] hover:bg-foreground hover:text-background transition-colors"
+            onClick={(e) => handleJoin(e as unknown as React.FormEvent, 'AGENTS-W4')}
+            disabled={!canQuickJoin}
+            className="border border-border rounded-full px-6 py-2 text-[10px] uppercase tracking-widest bg-[rgba(255,255,255,0.4)] hover:bg-foreground hover:text-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             AGENTS-W4
           </button>
+          {!canQuickJoin && (
+            <span className="text-[9px] text-muted-foreground">Enter your name above first</span>
+          )}
         </div>
       </motion.div>
     </main>
