@@ -10,21 +10,24 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
   const createQuestion = useCreateQuestion();
   
   const [title, setTitle] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [authorName, setAuthorName] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    if (!authorName.trim()) {
+      toast({ title: 'Please enter your name before asking', variant: 'destructive' });
+      return;
+    }
 
     createQuestion.mutate({
       roomCode,
       data: {
         title: title.trim(),
         deviceId,
-        isAnonymous,
-        authorName: isAnonymous ? undefined : (authorName.trim() || undefined),
+        isAnonymous: false,
+        authorName: authorName.trim(),
       }
     }, {
       onSuccess: () => {
@@ -74,26 +77,17 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="flex items-center gap-4 overflow-hidden pt-2"
+                className="overflow-hidden pt-1"
               >
-                <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={isAnonymous} 
-                    onChange={(e) => setIsAnonymous(e.target.checked)} 
-                    className="rounded-sm"
-                  />
-                  Post anonymously
-                </label>
-                {!isAnonymous && (
-                  <input 
-                    type="text" 
-                    placeholder="Your name (optional)" 
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    className="text-[10px] border-b border-[rgba(33,49,43,0.24)] bg-transparent outline-none p-1 placeholder-[rgba(23,49,58,0.36)]"
-                  />
-                )}
+                <input 
+                  type="text"
+                  placeholder="Your name"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  required
+                  autoComplete="nickname"
+                  className="text-[11px] border-b border-[rgba(33,49,43,0.24)] bg-transparent outline-none p-1 placeholder-[rgba(23,49,58,0.36)] w-48"
+                />
               </motion.div>
             )}
           </AnimatePresence>

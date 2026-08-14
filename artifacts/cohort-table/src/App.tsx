@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { LandingPage } from '@/pages/landing';
 import { RoomPage } from '@/pages/room';
+import { TaPage } from '@/pages/ta';
 import {
   Route,
   Switch,
@@ -28,6 +29,7 @@ function Router() {
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/room/:roomCode" component={RoomPage} />
+        <Route path="/ta/:roomCode" component={TaPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
