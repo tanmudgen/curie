@@ -200,6 +200,50 @@ router.get("/rooms/:roomCode/participants", async (req, res): Promise<void> => {
   res.json(result.rows.map((r) => ({ name: r.name as string, isTa: r.is_ta as boolean })));
 });
 
+// ── Similarity search helpers (module-scoped so they survive across requests) ─
+
+const STOP = new Set([
+  "a","an","the","is","it","in","of","on","at","to","for","do","does","did",
+  "what","why","how","when","which","where","who","can","could","would","should",
+  "will","am","are","was","were","be","been","being","have","has","had",
+  "with","this","that","these","those","i","my","me","we","our","you","your",
+  "he","his","she","her","they","their","and","or","but","not","no","its",
+  "about","if","so","just","like","also","more","get","got","use","using",
+]);
+
+const simTokenize = (text: string): string[] =>
+  text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+    .filter((w) => w.length > 1 && !STOP.has(w));
+
+const simCosine = (a: Record<string, number>, b: Record<string, number>): number => {
+  let dot = 0, normA = 0, normB = 0;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const av = a[k] ?? 0, bv = b[k] ?? 0;
+    dot += av * bv; normA += av * av; normB += bv * bv;
+  }
+  return normA === 0 || normB === 0 ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
+interface RoomSimCache {
+  questionIds: string;                         // JSON of sorted id array — cheap change detection
+  rows: { id: number; title: string }[];       // ordered question list
+  tokens: Map<number, string[]>;               // tokenized title per question id
+  df: Record<string, number>;                  // corpus document frequency
+  vecs: Map<number, Record<string, number>>;   // TF-IDF vector per question id
+}
+
+const simCache = new Map<string, RoomSimCache>();
+
+function buildVec(tokens: string[], df: Record<string, number>, N: number): Record<string, number> {
+  const tf: Record<string, number> = {};
+  for (const t of tokens) tf[t] = (tf[t] ?? 0) + 1;
+  const vec: Record<string, number> = {};
+  for (const [t, c] of Object.entries(tf))
+    vec[t] = (c / tokens.length) * (Math.log((N + 1) / ((df[t] ?? 0) + 1)) + 1);
+  return vec;
+}
+
 // POST /rooms/:roomCode/similar-questions
 router.post("/rooms/:roomCode/similar-questions", async (req, res): Promise<void> => {
   const rawCode = Array.isArray(req.params.roomCode) ? req.params.roomCode[0] : req.params.roomCode;
@@ -215,62 +259,49 @@ router.post("/rooms/:roomCode/similar-questions", async (req, res): Promise<void
     `SELECT id, title FROM questions WHERE room_code = $1 AND is_flagged = false ORDER BY created_at ASC`,
     [roomCode],
   );
-
   if (result.rows.length === 0) { res.json([]); return; }
 
-  // ── TF-IDF cosine similarity ──────────────────────────────────────────────
-  const STOP = new Set([
-    "a","an","the","is","it","in","of","on","at","to","for","do","does","did",
-    "what","why","how","when","which","where","who","can","could","would","should",
-    "will","am","are","was","were","be","been","being","have","has","had",
-    "with","this","that","these","those","i","my","me","we","our","you","your",
-    "he","his","she","her","they","their","and","or","but","not","no","its",
-    "about","if","so","just","like","also","more","get","got","use","using",
-  ]);
+  const rows: { id: number; title: string }[] = result.rows;
+  const freshIds = JSON.stringify(rows.map((r) => r.id));
+  let cache = simCache.get(roomCode);
 
-  const tokenize = (text: string): string[] =>
-    text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
-      .filter((w) => w.length > 1 && !STOP.has(w));
-
-  const corpus: string[][] = result.rows.map((q: { title: string }) => tokenize(q.title));
-  const queryTokens = tokenize(query);
-  if (queryTokens.length === 0) { res.json([]); return; }
-
-  // IDF across corpus
-  const df: Record<string, number> = {};
-  for (const tokens of corpus) {
-    for (const t of new Set(tokens)) df[t] = (df[t] ?? 0) + 1;
-  }
-  const N = corpus.length;
-  const idf = (term: string): number =>
-    Math.log((N + 1) / ((df[term] ?? 0) + 1)) + 1;
-
-  const tfidfVec = (tokens: string[]): Record<string, number> => {
-    const tf: Record<string, number> = {};
-    for (const t of tokens) tf[t] = (tf[t] ?? 0) + 1;
-    const vec: Record<string, number> = {};
-    for (const [t, c] of Object.entries(tf))
-      vec[t] = (c / tokens.length) * idf(t);
-    return vec;
-  };
-
-  const cosine = (a: Record<string, number>, b: Record<string, number>): number => {
-    let dot = 0, normA = 0, normB = 0;
-    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-    for (const k of keys) {
-      const av = a[k] ?? 0, bv = b[k] ?? 0;
-      dot += av * bv; normA += av * av; normB += bv * bv;
+  if (!cache || cache.questionIds !== freshIds) {
+    // Determine which question ids are new vs already tokenized
+    const prevTokens = cache?.tokens ?? new Map<number, string[]>();
+    const newTokens = new Map<number, string[]>(prevTokens);
+    for (const row of rows) {
+      if (!newTokens.has(row.id)) {
+        newTokens.set(row.id, simTokenize(row.title));
+      }
     }
-    return normA === 0 || normB === 0 ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
-  };
 
-  const queryVec = tfidfVec(queryTokens);
-  const matches = result.rows
-    .map((q: { id: number; title: string }, i: number) => ({
-      id: q.id,
-      title: q.title,
-      score: cosine(queryVec, tfidfVec(corpus[i])),
-    }))
+    // Recompute document frequency from full corpus
+    const df: Record<string, number> = {};
+    for (const row of rows) {
+      for (const t of new Set(newTokens.get(row.id) ?? [])) {
+        df[t] = (df[t] ?? 0) + 1;
+      }
+    }
+    const N = rows.length;
+
+    // Recompute TF-IDF vectors (IDF changed so all must be refreshed)
+    const vecs = new Map<number, Record<string, number>>();
+    for (const row of rows) {
+      vecs.set(row.id, buildVec(newTokens.get(row.id) ?? [], df, N));
+    }
+
+    cache = { questionIds: freshIds, rows, tokens: newTokens, df, vecs };
+    simCache.set(roomCode, cache);
+  }
+
+  // Vectorize query against cached IDF (never cached — query changes every call)
+  const queryTokens = simTokenize(query);
+  if (queryTokens.length === 0) { res.json([]); return; }
+  const N = cache.rows.length;
+  const queryVec = buildVec(queryTokens, cache.df, N);
+
+  const matches = cache.rows
+    .map((q) => ({ id: q.id, title: q.title, score: simCosine(queryVec, cache!.vecs.get(q.id)!) }))
     .filter((m) => m.score > 0.12)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
