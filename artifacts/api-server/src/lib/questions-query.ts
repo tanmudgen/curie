@@ -91,6 +91,12 @@ const BASE_QUESTION_SELECT = `
   )::text AS rising_score
 `;
 
+const RISING_SCORE_EXPR = `
+  COUNT(DISTINCT v.id) * 5.0 -
+  EXTRACT(EPOCH FROM (NOW() - q.created_at)) / 600.0 -
+  CASE WHEN tc.ta_name IS NOT NULL THEN 5.0 ELSE 0.0 END
+`;
+
 const BASE_JOINS = `
   FROM questions q
   LEFT JOIN votes v ON v.question_id = q.id
@@ -124,7 +130,7 @@ export async function getQuestionsForRoom(
   const params: (string | boolean)[] = [roomCode, deviceId];
 
   let whereClause = `WHERE q.room_code = $1 AND q.is_flagged = false`;
-  let orderClause = `ORDER BY rising_score DESC`;
+  let orderClause = `ORDER BY (${RISING_SCORE_EXPR}) DESC`;
 
   // Rising view excludes resolved questions
   if (view === "rising" || view === undefined) {
@@ -202,7 +208,7 @@ export async function getQuestionsForDesk(
     ${BASE_JOINS}
     WHERE q.room_code = $1 AND q.is_flagged = false ${extraWhere}
     ${BASE_GROUP_BY}
-    ORDER BY rising_score DESC
+    ORDER BY (${RISING_SCORE_EXPR}) DESC
     LIMIT 20
   `;
 
