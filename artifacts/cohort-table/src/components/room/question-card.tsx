@@ -357,9 +357,14 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                             onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] })
                           });
                         }}
-                        className={`text-[8px] uppercase tracking-[0.1em] ${reply.viewerMarkedHelpful ? 'text-primary font-black' : 'text-muted-foreground'}`}
+                        className={`flex items-center gap-[5px] rounded-full px-[8px] py-[3px] border text-[11px] transition-colors cursor-pointer
+                          ${reply.viewerMarkedHelpful
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-[rgba(255,255,255,0.4)] text-muted-foreground hover:border-primary/50 hover:text-primary'
+                          }`}
                       >
-                        👍 {reply.helpfulCount}
+                        <span>👍</span>
+                        {reply.helpfulCount > 0 && <span className="text-[9px] font-bold">{reply.helpfulCount}</span>}
                       </button>
                     </div>
                     <p className="text-[11px] leading-[1.5] text-foreground">{reply.body}</p>
