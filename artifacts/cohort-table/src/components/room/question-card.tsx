@@ -143,7 +143,8 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
 
   return (
-    <motion.article 
+    <motion.article
+      id={`question-${question.id}`}
       initial={{ opacity: 0, y: -100, rotate: -3, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
       transition={{ 

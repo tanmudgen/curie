@@ -127,9 +127,16 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
               <ul className="flex flex-col gap-1.5">
                 {similar.map((q) => (
                   <li key={q.id}>
-                    <span className="block text-[13px] font-serif text-foreground/80 leading-snug pl-2 border-l-2 border-[rgba(169,84,62,0.35)]">
+                    <a
+                      href={`#question-${q.id}`}
+                      onClick={() => {
+                        const el = document.getElementById(`question-${q.id}`);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="block text-[13px] font-serif text-foreground/80 leading-snug pl-2 border-l-2 border-[rgba(169,84,62,0.35)] hover:text-primary hover:border-primary transition-colors cursor-pointer underline-offset-2 hover:underline"
+                    >
                       {q.title}
-                    </span>
+                    </a>
                   </li>
                 ))}
               </ul>
