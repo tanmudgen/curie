@@ -15,7 +15,7 @@ export function RoomHeader({ room, extra }: { room?: Room; extra?: React.ReactNo
       </div>
       <div className="uppercase tracking-[0.2em] text-[8px] font-[850] text-muted-foreground justify-self-end flex items-center gap-4">
         {extra}
-        Gen Academy
+        The Gen Academy
       </div>
     </header>
   );

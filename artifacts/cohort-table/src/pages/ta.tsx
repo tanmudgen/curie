@@ -195,19 +195,21 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
   return (
     <main className="world">
       <RoomHeader room={room} extra={
-        <div className="flex items-center gap-3">
-          <span className="text-[8px] uppercase tracking-widest text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="text-[8px] uppercase tracking-widest text-muted-foreground mr-1">
             TA · {taName}
           </span>
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+            className="text-[8px] uppercase tracking-widest border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
           >
             {downloading ? 'Exporting…' : '↓ Export'}
           </button>
-          <button onClick={handleLogout}
-            className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
+          <button
+            onClick={handleLogout}
+            className="text-[8px] uppercase tracking-widest border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
+          >
             Log out
           </button>
         </div>
