@@ -15,6 +15,7 @@ import {
   useGetQuestion,
   useCreateReply,
   useMarkReplyHelpful,
+  useUnmarkReplyHelpful,
   getGetQuestionQueryKey
 } from '@workspace/api-client-react';
 import { useDeviceId } from '@/hooks/use-device-id';
@@ -67,6 +68,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
 
   const createReply = useCreateReply();
   const markHelpful = useMarkReplyHelpful();
+  const unmarkHelpful = useUnmarkReplyHelpful();
 
   let accentColor = 'var(--coral)'; // default unanswered
   if (question.status === 'answered') accentColor = 'var(--green)';
@@ -353,7 +355,8 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                       </span>
                       <button 
                         onClick={() => {
-                          markHelpful.mutate({ id: reply.id, data: { deviceId } }, {
+                          const action = reply.viewerMarkedHelpful ? unmarkHelpful : markHelpful;
+                          action.mutate({ id: reply.id, data: { deviceId } }, {
                             onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] })
                           });
                         }}

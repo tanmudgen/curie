@@ -206,6 +206,31 @@ router.post("/replies/:id/helpful", async (req, res): Promise<void> => {
   }));
 });
 
+// DELETE /replies/:id/helpful
+router.delete("/replies/:id/helpful", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const body = MarkReplyHelpfulBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+
+  await pool.query(`
+    DELETE FROM helpful_marks WHERE reply_id = $1 AND device_id = $2
+  `, [id, body.data.deviceId]);
+
+  const result = await pool.query(`
+    SELECT COUNT(*)::int AS helpful_count,
+      EXISTS(SELECT 1 FROM helpful_marks WHERE reply_id = $1 AND device_id = $2) AS viewer_marked
+    FROM helpful_marks WHERE reply_id = $1
+  `, [id, body.data.deviceId]);
+
+  res.json(MarkReplyHelpfulResponse.parse({
+    helpfulCount: result.rows[0].helpful_count,
+    viewerMarkedHelpful: !!result.rows[0].viewer_marked,
+  }));
+});
+
 // POST /questions/:id/follow
 router.post("/questions/:id/follow", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

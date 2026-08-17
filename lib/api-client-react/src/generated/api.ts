@@ -835,6 +835,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     /**
  * @summary Mark a reply as helpful
  */
+export const unmarkReplyHelpful = async (id: number, data: BodyType<DeviceAction>, options?: SecondParameter<typeof customFetch>) => {
+  return customFetch<HelpfulResult>(`/api/replies/${id}/helpful`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, data, ...options });
+};
+
+export const useUnmarkReplyHelpful = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unmarkReplyHelpful>>, TError, { id: number; data: BodyType<DeviceAction> }, TContext>, request?: SecondParameter<typeof customFetch> }
+) => {
+  const mutationOptions = {
+    mutationFn: ({ id, data }: { id: number; data: BodyType<DeviceAction> }) => unmarkReplyHelpful(id, data),
+    ...options?.mutation,
+  };
+  return useMutation(mutationOptions);
+};
+
 export const useMarkReplyHelpful = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markReplyHelpful>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
