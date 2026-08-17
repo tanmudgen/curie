@@ -200,4 +200,83 @@ router.get("/rooms/:roomCode/participants", async (req, res): Promise<void> => {
   res.json(result.rows.map((r) => ({ name: r.name as string, isTa: r.is_ta as boolean })));
 });
 
+// POST /rooms/:roomCode/similar-questions
+router.post("/rooms/:roomCode/similar-questions", async (req, res): Promise<void> => {
+  const rawCode = Array.isArray(req.params.roomCode) ? req.params.roomCode[0] : req.params.roomCode;
+  const roomCode = rawCode.toUpperCase();
+  const query: unknown = (req.body as Record<string, unknown>).query;
+
+  if (!query || typeof query !== "string" || query.trim().length < 6) {
+    res.json([]);
+    return;
+  }
+
+  const result = await pool.query(
+    `SELECT id, title FROM questions WHERE room_code = $1 AND is_flagged = false ORDER BY created_at ASC`,
+    [roomCode],
+  );
+
+  if (result.rows.length === 0) { res.json([]); return; }
+
+  // ── TF-IDF cosine similarity ──────────────────────────────────────────────
+  const STOP = new Set([
+    "a","an","the","is","it","in","of","on","at","to","for","do","does","did",
+    "what","why","how","when","which","where","who","can","could","would","should",
+    "will","am","are","was","were","be","been","being","have","has","had",
+    "with","this","that","these","those","i","my","me","we","our","you","your",
+    "he","his","she","her","they","their","and","or","but","not","no","its",
+    "about","if","so","just","like","also","more","get","got","use","using",
+  ]);
+
+  const tokenize = (text: string): string[] =>
+    text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+      .filter((w) => w.length > 1 && !STOP.has(w));
+
+  const corpus: string[][] = result.rows.map((q: { title: string }) => tokenize(q.title));
+  const queryTokens = tokenize(query);
+  if (queryTokens.length === 0) { res.json([]); return; }
+
+  // IDF across corpus
+  const df: Record<string, number> = {};
+  for (const tokens of corpus) {
+    for (const t of new Set(tokens)) df[t] = (df[t] ?? 0) + 1;
+  }
+  const N = corpus.length;
+  const idf = (term: string): number =>
+    Math.log((N + 1) / ((df[term] ?? 0) + 1)) + 1;
+
+  const tfidfVec = (tokens: string[]): Record<string, number> => {
+    const tf: Record<string, number> = {};
+    for (const t of tokens) tf[t] = (tf[t] ?? 0) + 1;
+    const vec: Record<string, number> = {};
+    for (const [t, c] of Object.entries(tf))
+      vec[t] = (c / tokens.length) * idf(t);
+    return vec;
+  };
+
+  const cosine = (a: Record<string, number>, b: Record<string, number>): number => {
+    let dot = 0, normA = 0, normB = 0;
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const k of keys) {
+      const av = a[k] ?? 0, bv = b[k] ?? 0;
+      dot += av * bv; normA += av * av; normB += bv * bv;
+    }
+    return normA === 0 || normB === 0 ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  };
+
+  const queryVec = tfidfVec(queryTokens);
+  const matches = result.rows
+    .map((q: { id: number; title: string }, i: number) => ({
+      id: q.id,
+      title: q.title,
+      score: cosine(queryVec, tfidfVec(corpus[i])),
+    }))
+    .filter((m) => m.score > 0.12)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ id, title }) => ({ id, title }));
+
+  res.json(matches);
+});
+
 export default router;
