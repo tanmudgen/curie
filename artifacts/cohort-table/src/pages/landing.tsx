@@ -149,11 +149,10 @@ export function LandingPage() {
                 transform: 'rotateY(180deg)',
                 gridArea: '1 / 1',
               }}
-              className="bg-[#16211d] border border-[rgba(44,114,93,0.3)] border-l-[6px] border-l-primary rounded-[5px_17px_17px_6px] shadow-[0_24px_48px_rgba(0,0,0,0.45),0_4px_9px_rgba(0,0,0,0.3)] p-6 md:p-8 text-left"
+              className="relative border border-[rgba(65,55,40,0.16)] border-l-[6px] border-l-primary rounded-[5px_17px_17px_6px] composer-bg shadow-[0_24px_48px_rgba(61,55,41,0.15),0_4px_9px_rgba(61,55,41,0.08)] p-6 md:p-8 text-left"
             >
-              {/* decorative chalk mark */}
               <span
-                className="block w-[60px] h-[2px] bg-primary/30 mb-5"
+                className="absolute w-[95px] h-[24px] left-1/2 -top-[8px] -translate-x-1/2 rotate-[1.4deg] bg-[rgba(211,195,152,0.69)] shadow-[0_1px_2px_rgba(70,59,41,0.1)]"
                 aria-hidden="true"
               />
 
@@ -169,7 +168,7 @@ export function LandingPage() {
                   placeholder="Your name"
                   autoComplete="name"
                   required
-                  className="w-full border-0 border-b border-[rgba(44,114,93,0.35)] bg-transparent py-2 px-1 font-serif text-xl text-white outline-none placeholder:text-[rgba(255,255,255,0.22)] caret-primary"
+                  className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
                 />
                 <input
                   type="password"
@@ -178,7 +177,7 @@ export function LandingPage() {
                   placeholder="TA password"
                   autoComplete="current-password"
                   required
-                  className="w-full border-0 border-b border-[rgba(44,114,93,0.35)] bg-transparent py-2 px-1 font-serif text-xl text-white outline-none placeholder:text-[rgba(255,255,255,0.22)] caret-primary"
+                  className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
                 />
 
                 <AnimatePresence>
@@ -187,7 +186,7 @@ export function LandingPage() {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="text-[10px] text-red-400 tracking-wide"
+                      className="text-[10px] text-destructive tracking-wide"
                     >
                       {taError}
                     </motion.p>
@@ -197,7 +196,7 @@ export function LandingPage() {
                 <button
                   type="submit"
                   disabled={login.isPending || !taName.trim() || !taPassword.trim()}
-                  className="mt-1 bg-primary text-white rounded-full py-[11px] text-[9px] uppercase tracking-[0.15em] font-bold hover:bg-primary/90 transition-colors disabled:opacity-40"
+                  className="dark-button mt-1 w-full py-3 disabled:opacity-40"
                 >
                   {login.isPending ? 'Signing in…' : 'Sign in to TA desk →'}
                 </button>
