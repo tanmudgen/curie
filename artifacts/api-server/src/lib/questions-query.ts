@@ -85,9 +85,9 @@ const BASE_QUESTION_SELECT = `
   gr.id AS group_reply_id,
   gr.created_at AS group_reply_created_at,
   (
-    COUNT(DISTINCT v.id) * 2.0 +
-    COUNT(DISTINCT bs.id) * 3.0 +
-    EXTRACT(EPOCH FROM (NOW() - q.created_at)) / 120.0 -
+    COUNT(DISTINCT v.id) * 5.0 +
+    COUNT(DISTINCT bs.id) * 2.0 -
+    EXTRACT(EPOCH FROM (NOW() - q.created_at)) / 600.0 -
     CASE WHEN tc.ta_name IS NOT NULL THEN 5.0 ELSE 0.0 END
   )::text AS rising_score
 `;
