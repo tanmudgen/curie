@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   useGetRoom,
@@ -144,6 +144,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
   const [filter, setFilter] = useState<ListQuestionsView>(ListQuestionsView.rising);
   const queryClient = useQueryClient();
   const logout = useTaLogout();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const { data: room, isLoading: roomLoading } = useGetRoom(roomCode);
@@ -160,7 +161,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
     logout.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/ta/me'] });
-        toast({ title: 'Logged out' });
+        setLocation('/');
       },
     });
   };
