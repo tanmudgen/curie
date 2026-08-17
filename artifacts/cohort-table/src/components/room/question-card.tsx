@@ -359,7 +359,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                         }}
                         className={`text-[8px] uppercase tracking-[0.1em] ${reply.viewerMarkedHelpful ? 'text-primary font-black' : 'text-muted-foreground'}`}
                       >
-                        Helpful · {reply.helpfulCount}
+                        👍 {reply.helpfulCount}
                       </button>
                     </div>
                     <p className="text-[11px] leading-[1.5] text-foreground">{reply.body}</p>
