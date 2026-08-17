@@ -13,6 +13,7 @@ export const questionsTable = pgTable("questions", {
   tags: text("tags").array().notNull().default([]),
   isFlagged: boolean("is_flagged").notNull().default(false),
   isInLiveQueue: boolean("is_in_live_queue").notNull().default(false),
+  isResolved: boolean("is_resolved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -9,6 +9,8 @@ import {
   useBlockQuestion,
   useUnblockQuestion,
   useClaimQuestion,
+  useReleaseQuestion,
+  useResolveQuestion,
   useGetQuestion,
   useCreateReply,
   useMarkReplyHelpful,
@@ -20,7 +22,7 @@ import { MentionInput } from './mention-input';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 
-export function QuestionCard({ question, index, roomCode }: { question: Question, index: number, roomCode: string }) {
+export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }: { question: Question, index: number, roomCode: string, isTaMode?: boolean, onTaAction?: () => void }) {
   const deviceId = useDeviceId();
   const participants = useParticipants(roomCode);
   const queryClient = useQueryClient();
@@ -32,6 +34,8 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
   const block = useBlockQuestion();
   const unblock = useUnblockQuestion();
   const claim = useClaimQuestion();
+  const release = useReleaseQuestion();
+  const resolve = useResolveQuestion();
 
   // Optimistic UI state
   const [optVote, setOptVote] = useState({ voted: !!question.viewerVoted, count: question.voteCount });
@@ -108,10 +112,21 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
     });
   };
 
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
+    onTaAction?.();
+  };
+
   const handleClaim = () => {
-    claim.mutate({ id: question.id }, {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] })
-    });
+    claim.mutate({ id: question.id }, { onSuccess: refresh });
+  };
+
+  const handleRelease = () => {
+    release.mutate({ id: question.id }, { onSuccess: refresh });
+  };
+
+  const handleResolve = () => {
+    resolve.mutate({ id: question.id }, { onSuccess: refresh });
   };
 
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
@@ -193,12 +208,50 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
             </button>
           )}
 
-          {question.claimedByTa && (
+          {question.claimedByTa && !isTaMode && (
             <span className="ml-auto font-black text-[8px] uppercase tracking-[0.08em] text-destructive p-[5px_8px] border border-destructive rounded-[2px] transform -rotate-2 shadow-sm select-none">
               {question.status === 'answered' ? 'Resolved' : `Claimed by ${question.claimedByTa}`}
             </span>
           )}
         </div>
+
+        {/* TA controls — only in TA mode */}
+        {isTaMode && (
+          <div className="flex items-center gap-[8px] mt-[10px] pt-[10px] border-t border-dashed border-border/60 flex-wrap">
+            {question.status !== 'answered' ? (
+              <>
+                {question.claimedByTa ? (
+                  <button
+                    onClick={handleRelease}
+                    className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Release claim
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleClaim}
+                    className="text-[7px] uppercase tracking-widest font-bold text-primary hover:opacity-70 transition-colors"
+                  >
+                    Claim →
+                  </button>
+                )}
+                <button
+                  onClick={handleResolve}
+                  className="text-[7px] uppercase tracking-widest font-bold text-primary border border-primary rounded-full px-[8px] py-[3px] hover:bg-primary hover:text-primary-foreground transition-colors ml-auto"
+                >
+                  ✓ Mark resolved
+                </button>
+              </>
+            ) : (
+              <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
+            )}
+            {question.claimedByTa && (
+              <span className="text-[7px] uppercase tracking-widest text-muted-foreground">
+                Claimed by {question.claimedByTa}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Reply Form */}
         <AnimatePresence>

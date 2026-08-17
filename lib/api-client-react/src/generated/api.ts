@@ -1495,6 +1495,27 @@ export const useReleaseQuestion = <TError = ErrorType<ErrorResponse>,
       return useMutation(getReleaseQuestionMutationOptions(options));
     }
 
+export type ResolveResult = { resolved: boolean }
+
+export const getResolveQuestionUrl = (id: number) => `/api/ta/questions/${id}/resolve`
+
+export const resolveQuestion = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
+  return customFetch<ResolveResult>(getResolveQuestionUrl(id), { ...options, method: 'POST' });
+}
+
+export const getResolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
+): UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext> => {
+  const mutationKey = ['resolveQuestion'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?? { mutation: { mutationKey } };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveQuestion>>, {id: number}> = ({ id }) => resolveQuestion(id, requestOptions);
+  return { mutationFn, ...mutationOptions };
+}
+
+export const useResolveQuestion = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
+) => useMutation(getResolveQuestionMutationOptions(options));
+
 export const getListQuestionGroupsUrl = (params?: ListQuestionGroupsParams,) => {
   const normalizedParams = new URLSearchParams();
 

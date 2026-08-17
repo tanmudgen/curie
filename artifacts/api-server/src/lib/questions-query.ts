@@ -11,6 +11,7 @@ export interface QuestionRow {
   tags: string[];
   is_flagged: boolean;
   is_in_live_queue: boolean;
+  is_resolved: boolean;
   created_at: Date;
   vote_count: string;
   follow_count: string;
@@ -50,7 +51,8 @@ export function formatQuestion(row: QuestionRow, deviceId: string) {
     blockedCount,
     replyCount,
     hasReplies: replyCount > 0,
-    status: replyCount > 0 ? "answered" : "unanswered",
+    isResolved: row.is_resolved,
+    status: (row.is_resolved || replyCount > 0) ? "answered" : "unanswered",
     tags: row.tags ?? [],
     claimedByTa: row.claimed_by_ta ?? null,
     groupId: row.group_id ?? null,
@@ -69,7 +71,7 @@ export function formatQuestion(row: QuestionRow, deviceId: string) {
 
 const BASE_QUESTION_SELECT = `
   q.id, q.room_code, q.title, q.body, q.author_label, q.is_anonymous, q.device_id,
-  q.tags, q.is_flagged, q.is_in_live_queue, q.created_at,
+  q.tags, q.is_flagged, q.is_in_live_queue, q.is_resolved, q.created_at,
   COUNT(DISTINCT v.id)::text AS vote_count,
   COUNT(DISTINCT f.id)::text AS follow_count,
   COUNT(DISTINCT bs.id)::text AS blocked_count,
@@ -179,7 +181,7 @@ export async function getQuestionsForDesk(
     extraWhere = ` AND tc.ta_name = $2`;
     params.push(taName);
   } else if (mode === "needs_ta") {
-    extraWhere = ` AND tc.ta_name IS NULL AND NOT EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;
+    extraWhere = ` AND tc.ta_name IS NULL AND q.is_resolved = false AND NOT EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;
   } else if (mode === "live_queue") {
     extraWhere = ` AND q.is_in_live_queue = true`;
   }

@@ -405,6 +405,18 @@ export const ReleaseQuestionResponse = zod.object({
 
 
 /**
+ * @summary TA resolves a question
+ */
+export const ResolveQuestionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResolveQuestionResponse = zod.object({
+  "resolved": zod.boolean()
+})
+
+
+/**
  * @summary List all question groups
  */
 export const ListQuestionGroupsQueryParams = zod.object({

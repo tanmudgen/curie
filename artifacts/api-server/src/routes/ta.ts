@@ -113,6 +113,26 @@ router.delete("/ta/questions/:id/claim", requireTa, async (req, res): Promise<vo
   res.json(ReleaseQuestionResponse.parse({ claimed: false, claimedByTa: null }));
 });
 
+// POST /ta/questions/:id/resolve
+router.post("/ta/questions/:id/resolve", requireTa, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  await pool.query(`UPDATE questions SET is_resolved = true WHERE id = $1`, [id]);
+  res.json({ resolved: true });
+});
+
+// DELETE /ta/questions/:id/resolve (unresolve)
+router.delete("/ta/questions/:id/resolve", requireTa, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  await pool.query(`UPDATE questions SET is_resolved = false WHERE id = $1`, [id]);
+  res.json({ resolved: false });
+});
+
 // GET /ta/question-groups
 router.get("/ta/question-groups", requireTa, async (req, res): Promise<void> => {
   const query = ListQuestionGroupsQueryParams.safeParse(req.query);
