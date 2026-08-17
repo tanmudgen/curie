@@ -17,6 +17,7 @@ import {
   getGetQuestionQueryKey
 } from '@workspace/api-client-react';
 import { useDeviceId } from '@/hooks/use-device-id';
+import { useDisplayName } from '@/hooks/use-display-name';
 import { useParticipants } from '@/hooks/use-participants';
 import { MentionInput } from './mention-input';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,6 +25,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }: { question: Question, index: number, roomCode: string, isTaMode?: boolean, onTaAction?: () => void }) {
   const deviceId = useDeviceId();
+  const { name: displayName } = useDisplayName();
   const participants = useParticipants(roomCode);
   const queryClient = useQueryClient();
   
@@ -102,7 +104,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const submitReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyBody.trim()) return;
-    createReply.mutate({ id: question.id, data: { body: replyBody, deviceId } }, {
+    createReply.mutate({ id: question.id, data: { body: replyBody, deviceId, authorName: displayName || undefined } }, {
       onSuccess: () => {
         setReplyBody('');
         setShowReplyForm(false);

@@ -1,6 +1,6 @@
 import { Room } from '@workspace/api-client-react';
 
-export function RoomHeader({ room }: { room?: Room }) {
+export function RoomHeader({ room, extra }: { room?: Room; extra?: React.ReactNode }) {
   return (
     <header className="h-[70px] px-[clamp(18px,4vw,58px)] flex items-center justify-between border-b border-border relative z-10 bg-[rgba(238,230,216,0.72)] backdrop-blur-[10px]">
       <div className="uppercase tracking-[0.2em] text-[10px] font-[850] flex items-center">
@@ -13,7 +13,8 @@ export function RoomHeader({ room }: { room?: Room }) {
         </i>
         Live {room ? `· ${room.cohortName} · ${room.sessionName}` : ''}
       </div>
-      <div className="uppercase tracking-[0.2em] text-[8px] font-[850] text-muted-foreground justify-self-end">
+      <div className="uppercase tracking-[0.2em] text-[8px] font-[850] text-muted-foreground justify-self-end flex items-center gap-4">
+        {extra}
         Gen Academy
       </div>
     </header>

@@ -9,14 +9,8 @@ import {
   getGetRoomPulseQueryKey,
   getListQuestionsQueryKey,
   useGetTaMe,
-  useGetTaDesk,
   useTaLogin,
   useTaLogout,
-  useClaimQuestion,
-  useReleaseQuestion,
-  useResolveQuestion,
-  useSendToLiveQueue,
-  getGetTaDeskQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDeviceId } from '@/hooks/use-device-id';
@@ -32,7 +26,6 @@ import { useToast } from '@/hooks/use-toast';
 export function TaPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const { data: taMe, isLoading: meLoading } = useGetTaMe({ query: { retry: false } });
-  const isTa = taMe?.loggedIn;
 
   if (meLoading) {
     return (
@@ -42,11 +35,11 @@ export function TaPage() {
     );
   }
 
-  if (!isTa) {
+  if (!taMe?.loggedIn) {
     return <TaLoginPage roomCode={roomCode!} />;
   }
 
-  return <TaRoomPage roomCode={roomCode!} taName={taMe!.taName} />;
+  return <TaRoomPage roomCode={roomCode!} taName={taMe.taName} />;
 }
 
 // ── Login page ────────────────────────────────────────────────────────────────
@@ -149,8 +142,9 @@ function TaLoginPage({ roomCode }: { roomCode: string }) {
 function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) {
   const deviceId = useDeviceId();
   const [filter, setFilter] = useState<ListQuestionsView>(ListQuestionsView.rising);
-  const [deskOpen, setDeskOpen] = useState(false);
   const queryClient = useQueryClient();
+  const logout = useTaLogout();
+  const { toast } = useToast();
 
   const { data: room, isLoading: roomLoading } = useGetRoom(roomCode);
   const { data: pulse } = useGetRoomPulse(roomCode, {
@@ -162,9 +156,13 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
     { query: { refetchInterval: 4000, queryKey: getListQuestionsQueryKey(roomCode, { view: filter, deviceId }) } },
   );
 
-  const refreshAll = () => {
-    refetchQuestions();
-    queryClient.invalidateQueries({ queryKey: getGetTaDeskQueryKey(roomCode) });
+  const handleLogout = () => {
+    logout.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/ta/me'] });
+        toast({ title: 'Logged out' });
+      },
+    });
   };
 
   if (roomLoading) {
@@ -177,14 +175,22 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
 
   return (
     <main className="world">
-      <RoomHeader room={room} />
+      <RoomHeader room={room} extra={
+        <div className="flex items-center gap-3">
+          <span className="text-[8px] uppercase tracking-widest text-muted-foreground">
+            TA · {taName}
+          </span>
+          <button onClick={handleLogout}
+            className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
+            Log out
+          </button>
+        </div>
+      } />
 
-      <section className="w-[min(1200px,95vw)] m-auto grid grid-cols-1 lg:grid-cols-[minmax(180px,210px)_1fr_280px] gap-[clamp(18px,3vw,40px)] p-[22px_0_70px] lg:p-[36px_0_70px]">
+      <section className="w-[min(1100px,95vw)] m-auto grid grid-cols-1 lg:grid-cols-[minmax(180px,210px)_minmax(0,790px)] justify-center gap-[clamp(22px,3vw,48px)] p-[22px_0_70px] lg:p-[36px_0_70px] max-w-[1100px]">
 
-        {/* Left — Pulse */}
         <PulseCard pulse={pulse} roomCode={roomCode} />
 
-        {/* Centre — Question list */}
         <section className="flex flex-col min-w-0">
           <QuestionComposer roomCode={roomCode} onSuccess={refetchQuestions} />
           <FilterTabs filter={filter} setFilter={setFilter} />
@@ -198,7 +204,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
                   index={i}
                   roomCode={roomCode}
                   isTaMode
-                  onTaAction={refreshAll}
+                  onTaAction={refetchQuestions}
                 />
               ))}
             </AnimatePresence>
@@ -210,176 +216,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
             )}
           </div>
         </section>
-
-        {/* Right — TA Desk panel */}
-        <TaDeskPanel roomCode={roomCode} taName={taName} onRefreshQuestions={refetchQuestions} />
       </section>
-
-      {/* Mobile desk toggle */}
-      <button
-        onClick={() => setDeskOpen(v => !v)}
-        className="fixed bottom-5 right-5 z-50 lg:hidden dark-button py-2 px-4 text-[9px] uppercase tracking-widest shadow-lg"
-      >
-        {deskOpen ? 'Close desk' : 'TA Desk'}
-      </button>
     </main>
-  );
-}
-
-// ── TA Desk panel ─────────────────────────────────────────────────────────────
-
-function TaDeskPanel({ roomCode, taName, onRefreshQuestions }: {
-  roomCode: string; taName: string; onRefreshQuestions: () => void;
-}) {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const logout = useTaLogout();
-  const claim = useClaimQuestion();
-  const release = useReleaseQuestion();
-  const resolve = useResolveQuestion();
-  const sendLive = useSendToLiveQueue();
-
-  const { data: desk } = useGetTaDesk(roomCode, {
-    query: { refetchInterval: 5000, queryKey: getGetTaDeskQueryKey(roomCode) },
-  });
-
-  const refreshDesk = () => {
-    queryClient.invalidateQueries({ queryKey: getGetTaDeskQueryKey(roomCode) });
-    onRefreshQuestions();
-  };
-
-  const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['/api/ta/me'] });
-        toast({ title: 'Logged out' });
-      },
-    });
-  };
-
-  return (
-    <aside className="hidden lg:flex flex-col gap-5 pt-1">
-      {/* Desk header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="uppercase tracking-[0.16em] text-primary text-[8px] font-black">TA Desk</span>
-          <p className="font-serif font-normal text-[20px] leading-none mt-1">{taName}</p>
-        </div>
-        <button onClick={handleLogout}
-          className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors mt-1">
-          Log out
-        </button>
-      </div>
-
-      {/* My Claims */}
-      <DeskSection title="My Claims">
-        {!desk || desk.myClaims.length === 0 ? (
-          <EmptySlot label="No active claims" />
-        ) : (
-          desk.myClaims.map((q, i) => (
-            <DeskCard key={q.id} title={q.title} accent="primary" index={i}>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <MiniButton onClick={() => release.mutate({ id: q.id }, { onSuccess: refreshDesk })}>
-                  Release
-                </MiniButton>
-                <MiniButton filled onClick={() => resolve.mutate({ id: q.id }, {
-                  onSuccess: () => { toast({ title: 'Resolved ✓' }); refreshDesk(); }
-                })}>
-                  ✓ Resolve
-                </MiniButton>
-                {!q.isInLiveQueue && (
-                  <MiniButton onClick={() => sendLive.mutate({ id: q.id }, {
-                    onSuccess: () => { toast({ title: 'Sent to Live Queue' }); refreshDesk(); }
-                  })}>
-                    Send live
-                  </MiniButton>
-                )}
-              </div>
-            </DeskCard>
-          ))
-        )}
-      </DeskSection>
-
-      {/* Needs a TA */}
-      <DeskSection title="Needs a TA">
-        {!desk || desk.needsATa.length === 0 ? (
-          <EmptySlot label="All caught up" />
-        ) : (
-          desk.needsATa.slice(0, 4).map((q, i) => (
-            <DeskCard key={q.id} title={q.title} accent="destructive" index={i}>
-              <div className="flex gap-2 mt-3">
-                <MiniButton filled onClick={() => claim.mutate({ id: q.id }, { onSuccess: refreshDesk })}>
-                  Claim
-                </MiniButton>
-                <MiniButton onClick={() => resolve.mutate({ id: q.id }, {
-                  onSuccess: () => { toast({ title: 'Resolved ✓' }); refreshDesk(); }
-                })}>
-                  ✓ Resolve
-                </MiniButton>
-              </div>
-            </DeskCard>
-          ))
-        )}
-      </DeskSection>
-
-      {/* Live queue count */}
-      {(desk?.liveQueue?.length ?? 0) > 0 && (
-        <div className="p-4 border border-dashed border-primary/30 rounded-lg text-center bg-[rgba(44,114,93,0.03)]">
-          <strong className="block font-serif font-normal text-[36px] leading-none text-primary">
-            {desk!.liveQueue.length}
-          </strong>
-          <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground font-black">in live queue</span>
-        </div>
-      )}
-    </aside>
-  );
-}
-
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
-function DeskSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[8px] uppercase tracking-widest font-black text-muted-foreground">{title}</span>
-      {children}
-    </div>
-  );
-}
-
-function DeskCard({ title, accent, index, children }: {
-  title: string; accent: string; index: number; children?: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0, rotate: (index - 0.5) * 0.5 }}
-      transition={{ delay: index * 0.04 }}
-      className={`p-3 border border-border border-l-[3px] border-l-${accent} rounded-[4px_8px_8px_4px] bg-[#faf4e7] shadow-[0_5px_10px_rgba(58,55,43,0.07)]`}
-    >
-      <b className="block font-serif font-normal text-[13px] leading-[1.25] line-clamp-2">{title}</b>
-      {children}
-    </motion.div>
-  );
-}
-
-function MiniButton({ children, onClick, filled }: {
-  children: React.ReactNode; onClick?: () => void; filled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 py-[5px] rounded-full text-[7px] uppercase tracking-[0.09em] border border-border transition-colors
-        ${filled ? 'bg-foreground text-background hover:opacity-80' : 'bg-transparent text-primary hover:bg-white/60'}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function EmptySlot({ label }: { label: string }) {
-  return (
-    <div className="p-3 border border-dashed border-border rounded-lg text-center text-[8px] uppercase tracking-widest text-muted-foreground">
-      {label}
-    </div>
   );
 }
