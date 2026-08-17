@@ -362,42 +362,28 @@ router.get("/ta/rooms/:roomCode/export", requireTa, async (req, res): Promise<vo
     repliesByQuestion[reply.question_id].push(reply);
   }
 
-  // CSV helpers
-  const cell = (s: string | number | null | undefined): string => {
-    if (s == null) return '';
-    const str = String(s);
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-      return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  };
-  const fmt = (d: Date) => new Date(d).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  const output = questionsResult.rows.map((q, i) => ({
+    number: i + 1,
+    title: q.title,
+    body: q.body ?? null,
+    author: q.author,
+    votes: q.vote_count,
+    follows: q.follow_count,
+    blocked: q.blocked_count,
+    status: q.is_resolved ? 'resolved' : q.reply_count > 0 ? 'answered' : 'open',
+    askedAt: new Date(q.created_at).toISOString(),
+    replies: (repliesByQuestion[q.id] ?? []).map((r) => ({
+      body: r.body,
+      author: r.author,
+      isTA: r.is_ta,
+      repliedAt: new Date(r.created_at).toISOString(),
+    })),
+  }));
 
-  const rows: string[] = [
-    'Type,Question #,Title,Body,Author,Votes,Follows,Blocked,Status,TA Reply,Timestamp',
-  ];
-
-  questionsResult.rows.forEach((q, i) => {
-    const num = i + 1;
-    const status = q.is_resolved ? 'Resolved' : q.reply_count > 0 ? 'Answered' : 'Open';
-    rows.push([
-      'Question', num, cell(q.title), cell(q.body), cell(q.author),
-      q.vote_count, q.follow_count, q.blocked_count, status, '', fmt(q.created_at),
-    ].join(','));
-
-    for (const r of repliesByQuestion[q.id] ?? []) {
-      rows.push([
-        'Reply', num, '', cell(r.body), cell(r.author),
-        '', '', '', '', r.is_ta ? 'Yes' : 'No', fmt(r.created_at),
-      ].join(','));
-    }
-  });
-
-  const csv = rows.join('\r\n');
   const date = new Date().toISOString().slice(0, 10);
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="cohort-${roomCode}-${date}.csv"`);
-  res.send(csv);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="cohort-${roomCode}-${date}.json"`);
+  res.json(output);
 });
 
 // GET /ta/desk/:roomCode

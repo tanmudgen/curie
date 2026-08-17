@@ -173,7 +173,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
       if (!res.ok) { toast({ title: 'Export failed', variant: 'destructive' }); return; }
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') ?? '';
-      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `cohort-${roomCode}.csv`;
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `cohort-${roomCode}.json`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = filename; a.click();
