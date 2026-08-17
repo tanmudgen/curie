@@ -1516,6 +1516,25 @@ export const useResolveQuestion = <TError = ErrorType<ErrorResponse>, TContext =
   options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
 ) => useMutation(getResolveQuestionMutationOptions(options));
 
+export const getUnresolveQuestionUrl = (id: number) => `/api/ta/questions/${id}/resolve`
+
+export const unresolveQuestion = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
+  return customFetch<ResolveResult>(getUnresolveQuestionUrl(id), { ...options, method: 'DELETE' });
+}
+
+export const getUnresolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
+): UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext> => {
+  const mutationKey = ['unresolveQuestion'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?? { mutation: { mutationKey } };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof unresolveQuestion>>, {id: number}> = ({ id }) => unresolveQuestion(id, requestOptions);
+  return { mutationFn, ...mutationOptions };
+}
+
+export const useUnresolveQuestion = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
+) => useMutation(getUnresolveQuestionMutationOptions(options));
+
 export const getListQuestionGroupsUrl = (params?: ListQuestionGroupsParams,) => {
   const normalizedParams = new URLSearchParams();
 

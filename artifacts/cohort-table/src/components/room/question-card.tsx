@@ -11,6 +11,7 @@ import {
   useClaimQuestion,
   useReleaseQuestion,
   useResolveQuestion,
+  useUnresolveQuestion,
   useGetQuestion,
   useCreateReply,
   useMarkReplyHelpful,
@@ -38,6 +39,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const claim = useClaimQuestion();
   const release = useReleaseQuestion();
   const resolve = useResolveQuestion();
+  const unresolve = useUnresolveQuestion();
 
   // Optimistic UI state
   const [optVote, setOptVote] = useState({ voted: !!question.viewerVoted, count: question.voteCount });
@@ -131,6 +133,10 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
     resolve.mutate({ id: question.id }, { onSuccess: refresh });
   };
 
+  const handleUnresolve = () => {
+    unresolve.mutate({ id: question.id }, { onSuccess: refresh });
+  };
+
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
 
   return (
@@ -191,36 +197,20 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
           </div>
         )}
 
-        <div className="flex items-center gap-[9px] md:gap-[13px] mt-[15px] pt-[13px] border-t border-border flex-wrap">
-          <button onClick={handleFollow} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-primary transition-colors ${optFollow.followed ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
-            Follow · {optFollow.count}
-          </button>
-          
-          <button onClick={handleBlock} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-destructive transition-colors ${optBlock.blocked ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-            I'm blocked · {optBlock.count}
-          </button>
-
-          <button onClick={() => setShowReplyForm(!showReplyForm)} className="border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer text-muted-foreground hover:text-primary transition-colors">
-            Reply
-          </button>
-
-          {question.replyCount > 0 && (
-            <button onClick={() => setShowReplies(!showReplies)} className="border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer text-muted-foreground hover:text-primary transition-colors">
-              {showReplies ? 'Hide replies' : `Show ${question.replyCount} replies`}
-            </button>
-          )}
-
-          {question.claimedByTa && !isTaMode && (
-            <span className="ml-auto font-black text-[8px] uppercase tracking-[0.08em] text-destructive p-[5px_8px] border border-destructive rounded-[2px] transform -rotate-2 shadow-sm select-none">
-              {question.status === 'answered' ? 'Resolved' : `Claimed by ${question.claimedByTa}`}
-            </span>
-          )}
-        </div>
-
         {/* TA controls — only in TA mode */}
         {isTaMode && (
           <div className="flex items-center gap-[8px] mt-[10px] pt-[10px] border-t border-dashed border-border/60 flex-wrap">
-            {question.status !== 'answered' ? (
+            {question.status === 'answered' ? (
+              <>
+                <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
+                <button
+                  onClick={handleUnresolve}
+                  className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors ml-2"
+                >
+                  Unresolve
+                </button>
+              </>
+            ) : (
               <>
                 {question.claimedByTa ? (
                   <button
@@ -237,6 +227,11 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                     Claim →
                   </button>
                 )}
+                {question.claimedByTa && (
+                  <span className="text-[7px] uppercase tracking-widest text-muted-foreground">
+                    Claimed by {question.claimedByTa}
+                  </span>
+                )}
                 <button
                   onClick={handleResolve}
                   className="text-[7px] uppercase tracking-widest font-bold text-primary border border-primary rounded-full px-[8px] py-[3px] hover:bg-primary hover:text-primary-foreground transition-colors ml-auto"
@@ -244,43 +239,81 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                   ✓ Mark resolved
                 </button>
               </>
-            ) : (
-              <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
-            )}
-            {question.claimedByTa && (
-              <span className="text-[7px] uppercase tracking-widest text-muted-foreground">
-                Claimed by {question.claimedByTa}
-              </span>
             )}
           </div>
         )}
 
-        {/* Reply Form */}
-        <AnimatePresence>
-          {showReplyForm && (
-            <motion.form 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="mt-4 overflow-hidden"
-              onSubmit={submitReply}
+        {/* Action bar + inline reply — unified row */}
+        <div className="mt-[14px] pt-[12px] border-t border-border">
+          <div className="flex items-end gap-2">
+            <AnimatePresence mode="wait" initial={false}>
+              {!showReplyForm ? (
+                <motion.div
+                  key="links"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  className="flex items-center gap-[9px] md:gap-[13px] flex-1 flex-wrap"
+                >
+                  <button onClick={handleFollow} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-primary transition-colors ${optFollow.followed ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                    Follow · {optFollow.count}
+                  </button>
+                  <button onClick={handleBlock} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-destructive transition-colors ${optBlock.blocked ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                    I'm blocked · {optBlock.count}
+                  </button>
+                  {question.replyCount > 0 && (
+                    <button onClick={() => setShowReplies(!showReplies)} className="border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer text-muted-foreground hover:text-primary transition-colors">
+                      {showReplies ? 'Hide replies' : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
+                    </button>
+                  )}
+                  {question.claimedByTa && !isTaMode && (
+                    <span className="ml-auto font-black text-[8px] uppercase tracking-[0.08em] text-destructive p-[5px_8px] border border-destructive rounded-[2px] transform -rotate-2 shadow-sm select-none">
+                      {question.status === 'answered' ? 'Resolved' : `Claimed by ${question.claimedByTa}`}
+                    </span>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="textarea"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  className="flex-1"
+                >
+                  <MentionInput
+                    value={replyBody}
+                    onChange={setReplyBody}
+                    participants={participants}
+                    placeholder="Add an answer or context… type @ to ping someone"
+                    multiline
+                    autoResize
+                    maxRows={4}
+                    onSubmit={() => submitReply({ preventDefault: () => {} } as React.FormEvent)}
+                    className="w-full bg-[rgba(255,255,255,0.5)] border border-border rounded-md px-3 py-2 text-[11px] outline-none focus:border-primary block"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Reply / Send — same position */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!showReplyForm) {
+                  setShowReplyForm(true);
+                } else {
+                  submitReply({ preventDefault: () => {} } as React.FormEvent);
+                }
+              }}
+              disabled={showReplyForm && (createReply.isPending || !replyBody.trim())}
+              className="dark-button text-[8px] py-[6px] px-4 min-h-0 shrink-0 self-end disabled:opacity-40"
             >
-              <div className="flex gap-2">
-                <MentionInput
-                  value={replyBody}
-                  onChange={setReplyBody}
-                  participants={participants}
-                  placeholder="Add an answer or context… type @ to ping someone"
-                  onSubmit={() => submitReply({ preventDefault: () => {} } as React.FormEvent)}
-                  className="flex-1 bg-[rgba(255,255,255,0.5)] border border-border rounded-md px-3 py-2 text-[11px] outline-none focus:border-primary"
-                />
-                <button type="submit" disabled={createReply.isPending} className="dark-button text-[8px] py-1 px-3 min-h-0">
-                  Send
-                </button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
+              {showReplyForm ? (createReply.isPending ? '…' : 'Send') : 'Reply'}
+            </button>
+          </div>
+        </div>
 
         {/* Replies List */}
         <AnimatePresence>

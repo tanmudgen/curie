@@ -8,6 +8,8 @@ interface MentionInputProps {
   placeholder?: string;
   className?: string;
   multiline?: boolean;
+  autoResize?: boolean;
+  maxRows?: number;
   onSubmit?: () => void;
 }
 
@@ -31,11 +33,25 @@ export function MentionInput({
   placeholder,
   className,
   multiline = false,
+  autoResize = false,
+  maxRows = 4,
   onSubmit,
 }: MentionInputProps) {
   const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // Auto-resize the textarea height based on content
+  useEffect(() => {
+    if (!autoResize || !ref.current) return;
+    const el = ref.current as HTMLTextAreaElement;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+    const paddingY = parseFloat(getComputedStyle(el).paddingTop) + parseFloat(getComputedStyle(el).paddingBottom);
+    const maxHeight = lineHeight * maxRows + paddingY;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [value, autoResize, maxRows]);
 
   const filtered = query === null ? [] : participants.filter((p) =>
     p.name.toLowerCase().startsWith(query.toLowerCase())
@@ -90,7 +106,7 @@ export function MentionInput({
   return (
     <div className="relative flex-1">
       {multiline ? (
-        <textarea {...sharedProps} rows={2} style={{ resize: 'none' }} />
+        <textarea {...sharedProps} rows={1} style={{ resize: 'none', overflow: 'hidden' }} />
       ) : (
         <input type="text" {...sharedProps} autoComplete="off" />
       )}
