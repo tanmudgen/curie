@@ -58,7 +58,7 @@ export function TaDashboardPage() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
         <div className="flex items-center gap-2 uppercase tracking-[0.18em] text-[9px] font-[850]">
           <span className="w-[8px] h-[8px] rounded-full bg-primary shadow-[0_0_0_2px_hsl(var(--background)),0_0_0_3px_hsl(var(--primary))]" />
-          Cohort Table
+          /Curie
         </div>
         <button
           onClick={handleLogout}

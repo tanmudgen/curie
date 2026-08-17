@@ -63,7 +63,7 @@ export function LandingPage() {
         {/* Logo */}
         <div className="uppercase tracking-[0.2em] text-[10px] font-[850] mb-4 flex items-center justify-center">
           <span className="w-[9px] h-[9px] mr-2 rounded-full bg-primary shadow-[0_0_0_3px_hsl(var(--background)),0_0_0_4px_hsl(var(--primary))]" />
-          Cohort Table
+          /Curie
         </div>
 
         {/* Title crossfades on flip */}
