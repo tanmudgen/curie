@@ -42,12 +42,13 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
   const [replyBody, setReplyBody] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
 
-  // Sync optimistic state when the server confirms a new value
+  // Sync from server only when the polled data changes (not on every isPending flip)
   useEffect(() => {
     if (!vote.isPending && !unvote.isPending) {
       setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
     }
-  }, [question.voteCount, question.viewerVoted, vote.isPending, unvote.isPending]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question.voteCount, question.viewerVoted]);
 
   const { data: detail } = useGetQuestion(question.id, { deviceId }, { 
     query: { 
