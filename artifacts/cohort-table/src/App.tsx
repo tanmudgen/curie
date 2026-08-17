@@ -7,6 +7,7 @@ import NotFound from '@/pages/not-found';
 import { LandingPage } from '@/pages/landing';
 import { RoomPage } from '@/pages/room';
 import { TaPage } from '@/pages/ta';
+import { TaDashboardPage } from '@/pages/ta-dashboard';
 import {
   Route,
   Switch,
@@ -29,6 +30,7 @@ function Router() {
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/room/:roomCode" component={RoomPage} />
+        <Route path="/ta" component={TaDashboardPage} />
         <Route path="/ta/:roomCode" component={TaPage} />
         <Route component={NotFound} />
       </Switch>
