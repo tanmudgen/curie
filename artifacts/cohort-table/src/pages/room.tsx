@@ -32,11 +32,11 @@ export function RoomPage() {
   
   const { data: questions, refetch: refetchQuestions } = useListQuestions(
     roomCode!, 
-    { view: filter, deviceId: filter === ListQuestionsView.mine ? deviceId : undefined },
+    { view: filter, deviceId },
     { 
       query: { 
         refetchInterval: 4000,
-        queryKey: getListQuestionsQueryKey(roomCode!, { view: filter, deviceId: filter === ListQuestionsView.mine ? deviceId : undefined })
+        queryKey: getListQuestionsQueryKey(roomCode!, { view: filter, deviceId })
       } 
     }
   );
