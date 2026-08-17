@@ -165,6 +165,24 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
     });
   };
 
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/ta/rooms/${roomCode}/export`, { credentials: 'include' });
+      if (!res.ok) { toast({ title: 'Export failed', variant: 'destructive' }); return; }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `cohort-${roomCode}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (roomLoading) {
     return (
       <main className="world flex items-center justify-center min-h-[100dvh]">
@@ -180,6 +198,13 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
           <span className="text-[8px] uppercase tracking-widest text-muted-foreground">
             TA · {taName}
           </span>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+          >
+            {downloading ? 'Exporting…' : '↓ Export'}
+          </button>
           <button onClick={handleLogout}
             className="text-[8px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
             Log out

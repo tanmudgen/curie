@@ -321,6 +321,85 @@ router.post("/ta/questions/:id/live-queue", requireTa, async (req, res): Promise
   res.json(SendToLiveQueueResponse.parse({ ok: true, message: "Sent to live queue" }));
 });
 
+// GET /ta/rooms/:roomCode/export  — download all questions + replies as CSV
+router.get("/ta/rooms/:roomCode/export", requireTa, async (req, res): Promise<void> => {
+  const rawCode = Array.isArray(req.params.roomCode) ? req.params.roomCode[0] : req.params.roomCode;
+  const roomCode = rawCode.toUpperCase();
+
+  const [questionsResult, repliesResult] = await Promise.all([
+    pool.query(`
+      SELECT q.id, q.title, q.body,
+        CASE WHEN q.is_anonymous THEN 'Anonymous' ELSE q.author_label END AS author,
+        q.is_resolved, q.created_at,
+        COUNT(DISTINCT v.id)::int AS vote_count,
+        COUNT(DISTINCT f.id)::int AS follow_count,
+        COUNT(DISTINCT bs.id)::int AS blocked_count,
+        COUNT(DISTINCT r.id)::int AS reply_count
+      FROM questions q
+      LEFT JOIN votes v ON v.question_id = q.id
+      LEFT JOIN follows f ON f.question_id = q.id
+      LEFT JOIN blocked_signals bs ON bs.question_id = q.id
+      LEFT JOIN replies r ON r.question_id = q.id AND r.is_flagged = false
+      WHERE q.room_code = $1 AND q.is_flagged = false
+      GROUP BY q.id
+      ORDER BY q.created_at ASC
+    `, [roomCode]),
+    pool.query(`
+      SELECT r.id, r.question_id, r.body,
+        CASE WHEN r.is_ta THEN COALESCE(r.ta_name, r.author_label) ELSE r.author_label END AS author,
+        r.is_ta, r.created_at
+      FROM replies r
+      JOIN questions q ON q.id = r.question_id
+      WHERE q.room_code = $1 AND r.is_flagged = false
+      ORDER BY r.question_id ASC, r.created_at ASC
+    `, [roomCode]),
+  ]);
+
+  // Group replies by question id
+  const repliesByQuestion: Record<number, typeof repliesResult.rows> = {};
+  for (const reply of repliesResult.rows) {
+    if (!repliesByQuestion[reply.question_id]) repliesByQuestion[reply.question_id] = [];
+    repliesByQuestion[reply.question_id].push(reply);
+  }
+
+  // CSV helpers
+  const cell = (s: string | number | null | undefined): string => {
+    if (s == null) return '';
+    const str = String(s);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+  const fmt = (d: Date) => new Date(d).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+
+  const rows: string[] = [
+    'Type,Question #,Title,Body,Author,Votes,Follows,Blocked,Status,TA Reply,Timestamp',
+  ];
+
+  questionsResult.rows.forEach((q, i) => {
+    const num = i + 1;
+    const status = q.is_resolved ? 'Resolved' : q.reply_count > 0 ? 'Answered' : 'Open';
+    rows.push([
+      'Question', num, cell(q.title), cell(q.body), cell(q.author),
+      q.vote_count, q.follow_count, q.blocked_count, status, '', fmt(q.created_at),
+    ].join(','));
+
+    for (const r of repliesByQuestion[q.id] ?? []) {
+      rows.push([
+        'Reply', num, '', cell(r.body), cell(r.author),
+        '', '', '', '', r.is_ta ? 'Yes' : 'No', fmt(r.created_at),
+      ].join(','));
+    }
+  });
+
+  const csv = rows.join('\r\n');
+  const date = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="cohort-${roomCode}-${date}.csv"`);
+  res.send(csv);
+});
+
 // GET /ta/desk/:roomCode
 router.get("/ta/desk/:roomCode", requireTa, async (req, res): Promise<void> => {
   const params = GetTaDeskParams.safeParse(req.params);
