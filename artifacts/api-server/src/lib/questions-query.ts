@@ -127,7 +127,15 @@ export async function getQuestionsForRoom(
   let whereClause = `WHERE q.room_code = $1 AND q.is_flagged = false`;
   let orderClause = `ORDER BY rising_score DESC`;
 
-  if (view === "unanswered") {
+  // Rising view excludes resolved questions
+  if (view === "rising" || view === undefined) {
+    whereClause += ` AND q.is_resolved = false`;
+  }
+
+  if (view === "resolved") {
+    whereClause += ` AND q.is_resolved = true`;
+    orderClause = `ORDER BY q.created_at DESC`;
+  } else if (view === "unanswered") {
     whereClause += ` AND NOT EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;
   } else if (view === "answered") {
     whereClause += ` AND EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;

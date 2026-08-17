@@ -59,7 +59,7 @@ export const ListQuestionsParams = zod.object({
 export const listQuestionsQueryViewDefault = `rising`;
 
 export const ListQuestionsQueryParams = zod.object({
-  "view": zod.enum(['rising', 'unanswered', 'answered', 'mine']).default(listQuestionsQueryViewDefault),
+  "view": zod.enum(['rising', 'resolved', 'unanswered', 'answered', 'mine']).default(listQuestionsQueryViewDefault),
   "deviceId": zod.coerce.string().optional().describe('Anonymous device ID for \"mine\" view')
 })
 
@@ -75,6 +75,7 @@ export const ListQuestionsResponseItem = zod.object({
   "blockedCount": zod.number(),
   "replyCount": zod.number(),
   "hasReplies": zod.boolean(),
+  "isResolved": zod.boolean().optional(),
   "status": zod.enum(['unanswered', 'answered']),
   "tags": zod.array(zod.string()).optional(),
   "claimedByTa": zod.string().nullish(),

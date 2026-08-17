@@ -244,6 +244,7 @@ export type ListQuestionsView = typeof ListQuestionsView[keyof typeof ListQuesti
 
 export const ListQuestionsView = {
   rising: 'rising',
+  resolved: 'resolved',
   unanswered: 'unanswered',
   answered: 'answered',
   mine: 'mine',

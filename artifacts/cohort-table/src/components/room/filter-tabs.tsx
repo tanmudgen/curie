@@ -9,6 +9,7 @@ export function FilterTabs({
 }) {
   const tabs = [
     { id: ListQuestionsView.rising, label: 'Rising' },
+    { id: ListQuestionsView.resolved, label: 'Resolved' },
     { id: ListQuestionsView.unanswered, label: 'Unanswered' },
     { id: ListQuestionsView.answered, label: 'Answered' },
     { id: ListQuestionsView.mine, label: 'My activity' },

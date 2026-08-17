@@ -200,12 +200,12 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
         {/* TA controls — only in TA mode */}
         {isTaMode && (
           <div className="flex items-center gap-[8px] mt-[10px] pt-[10px] border-t border-dashed border-border/60 flex-wrap">
-            {question.status === 'answered' ? (
+            {question.isResolved ? (
               <>
                 <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
                 <button
                   onClick={handleUnresolve}
-                  className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors ml-2"
+                  className="text-[7px] uppercase tracking-widest font-bold text-muted-foreground border border-border rounded-full px-[8px] py-[3px] hover:border-destructive hover:text-destructive transition-colors ml-2"
                 >
                   Unresolve
                 </button>
