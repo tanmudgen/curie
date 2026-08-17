@@ -6,8 +6,20 @@ const TA_PASSWORD = process.env.TA_PASSWORD || "cohort2024";
 const COOKIE_NAME = "ta_session";
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 8; // 8 hours
 
+// Optional: comma-separated whitelist of TA names (e.g. "Nina,Noah,Jake").
+// If TA_NAMES is not set, any name is allowed with the correct password.
+const TA_NAMES_RAW = process.env.TA_NAMES;
+const TA_NAMES: string[] | null = TA_NAMES_RAW
+  ? TA_NAMES_RAW.split(",").map((n) => n.trim().toLowerCase()).filter(Boolean)
+  : null;
+
 export function verifyTaPassword(password: string): boolean {
   return password === TA_PASSWORD;
+}
+
+export function verifyTaName(name: string): boolean {
+  if (!TA_NAMES) return true; // no whitelist — any name is allowed
+  return TA_NAMES.includes(name.trim().toLowerCase());
 }
 
 function sign(value: string): string {

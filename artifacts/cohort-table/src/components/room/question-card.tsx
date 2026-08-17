@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Question, 
@@ -42,10 +42,12 @@ export function QuestionCard({ question, index, roomCode }: { question: Question
   const [replyBody, setReplyBody] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
 
-  // Sync optimistic state with props if they change significantly
-  if (question.voteCount !== optVote.count && !vote.isPending && !unvote.isPending) {
-    setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
-  }
+  // Sync optimistic state when the server confirms a new value
+  useEffect(() => {
+    if (!vote.isPending && !unvote.isPending) {
+      setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
+    }
+  }, [question.voteCount, question.viewerVoted, vote.isPending, unvote.isPending]);
 
   const { data: detail } = useGetQuestion(question.id, { deviceId }, { 
     query: { 

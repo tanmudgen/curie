@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDisplayName } from '@/hooks/use-display-name';
 
 export function LandingPage() {
   const [, setLocation] = useLocation();
   const [roomCode, setRoomCode] = useState('');
   const { name, setName } = useDisplayName();
+  const [showTaSignIn, setShowTaSignIn] = useState(false);
+  const [taRoomCode, setTaRoomCode] = useState('');
 
   const handleJoin = (e: React.FormEvent, code?: string) => {
     e.preventDefault();
@@ -93,6 +95,44 @@ export function LandingPage() {
           {!canQuickJoin && (
             <span className="text-[9px] text-muted-foreground">Enter your name above first</span>
           )}
+        </div>
+
+        {/* TA sign-in */}
+        <div className="mt-10 flex flex-col items-center gap-2">
+          <button
+            onClick={() => setShowTaSignIn(v => !v)}
+            className="text-[9px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showTaSignIn ? '↑ cancel' : 'Sign in as TA →'}
+          </button>
+          <AnimatePresence>
+            {showTaSignIn && (
+              <motion.div
+                key="ta-signin"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center gap-3 mt-1"
+              >
+                <input
+                  type="text"
+                  value={taRoomCode}
+                  onChange={(e) => setTaRoomCode(e.target.value.toUpperCase())}
+                  placeholder="Room code"
+                  autoComplete="off"
+                  className="border border-border rounded-full px-5 py-2 text-[11px] uppercase tracking-widest bg-[rgba(255,255,255,0.4)] outline-none text-center w-44"
+                />
+                <button
+                  disabled={!taRoomCode.trim()}
+                  onClick={() => setLocation(`/ta/${taRoomCode.trim()}`)}
+                  className="border border-border rounded-full px-6 py-2 text-[10px] uppercase tracking-widest bg-foreground text-background disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Go to TA desk →
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </main>

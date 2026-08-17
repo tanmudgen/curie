@@ -30,6 +30,7 @@ import {
 } from "@workspace/api-zod";
 import {
   verifyTaPassword,
+  verifyTaName,
   createSessionCookie,
   clearSessionCookie,
   parseTaSession,
@@ -49,13 +50,18 @@ router.post("/ta/login", async (req, res): Promise<void> => {
 
   const { name, password } = body.data;
 
+  if (!name || name.trim().length === 0) {
+    res.status(400).json({ error: "TA name is required" });
+    return;
+  }
+
   if (!verifyTaPassword(password)) {
     res.status(401).json({ error: "Invalid TA password" });
     return;
   }
 
-  if (!name || name.trim().length === 0) {
-    res.status(400).json({ error: "TA name is required" });
+  if (!verifyTaName(name)) {
+    res.status(403).json({ error: "This name is not on the TA roster for this cohort." });
     return;
   }
 
