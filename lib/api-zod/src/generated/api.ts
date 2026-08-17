@@ -196,7 +196,7 @@ export const GetQuestionResponse = zod.object({
   "body": zod.string(),
   "taName": zod.string(),
   "createdAt": zod.string()
-}).optional()
+}).nullish()
 })
 
 

@@ -46,7 +46,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const [optFollow, setOptFollow] = useState({ followed: !!question.viewerFollows, count: question.followCount });
   const [optBlock, setOptBlock] = useState({ blocked: !!question.viewerBlocked, count: question.blockedCount });
   
-  const [showReplies, setShowReplies] = useState(false);
+  const [showReplies, setShowReplies] = useState(question.replyCount > 0);
   const [replyBody, setReplyBody] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
 
@@ -110,6 +110,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
       onSuccess: () => {
         setReplyBody('');
         setShowReplyForm(false);
+        setShowReplies(true);
         queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
       }
@@ -256,15 +257,24 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                   transition={{ duration: 0.12 }}
                   className="flex items-center gap-[9px] md:gap-[13px] flex-1 flex-wrap"
                 >
-                  <button onClick={handleFollow} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-primary transition-colors ${optFollow.followed ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                  <button onClick={handleFollow} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
+                    ${optFollow.followed
+                      ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                      : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
                     Follow · {optFollow.count}
                   </button>
-                  <button onClick={handleBlock} className={`border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer hover:text-destructive transition-colors ${optBlock.blocked ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                  <button onClick={handleBlock} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
+                    ${optBlock.blocked
+                      ? 'border-destructive text-destructive hover:bg-destructive hover:text-white'
+                      : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'}`}>
                     I'm blocked · {optBlock.count}
                   </button>
                   {question.replyCount > 0 && (
-                    <button onClick={() => setShowReplies(!showReplies)} className="border-0 bg-transparent p-0 text-[8px] uppercase tracking-[0.08em] cursor-pointer text-muted-foreground hover:text-primary transition-colors">
-                      {showReplies ? 'Hide replies' : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
+                    <button onClick={() => setShowReplies(!showReplies)} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
+                      ${showReplies
+                        ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
+                      {showReplies ? `Hide ${question.replyCount === 1 ? 'reply' : 'replies'}` : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
                     </button>
                   )}
                   {question.claimedByTa && !isTaMode && (
