@@ -308,7 +308,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                 }
               }}
               disabled={showReplyForm && (createReply.isPending || !replyBody.trim())}
-              className="dark-button text-[8px] py-[6px] px-4 min-h-0 shrink-0 self-end disabled:opacity-40"
+              className="dark-button text-[8px] py-[10px] px-4 min-h-0 shrink-0 self-end disabled:opacity-40"
             >
               {showReplyForm ? (createReply.isPending ? '…' : 'Send') : 'Reply'}
             </button>
