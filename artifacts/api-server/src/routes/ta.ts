@@ -347,7 +347,7 @@ router.delete("/ta/questions/:id", requireTa, async (req, res): Promise<void> =>
   // Delete child records first (no cascade constraints)
   await pool.query(`DELETE FROM votes WHERE question_id = $1`, [id]);
   await pool.query(`DELETE FROM follows WHERE question_id = $1`, [id]);
-  await pool.query(`DELETE FROM blocked WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM blocked_signals WHERE question_id = $1`, [id]);
   await pool.query(`DELETE FROM ta_claims WHERE question_id = $1`, [id]);
   await pool.query(`DELETE FROM question_group_members WHERE question_id = $1`, [id]);
   await pool.query(`DELETE FROM replies WHERE question_id = $1`, [id]);
