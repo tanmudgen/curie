@@ -65,6 +65,7 @@ export interface Question {
   groupId?: number | null;
   /** @nullable */
   groupTitle?: string | null;
+  isResolved?: boolean;
   isInLiveQueue?: boolean;
   viewerVoted?: boolean;
   viewerFollows?: boolean;

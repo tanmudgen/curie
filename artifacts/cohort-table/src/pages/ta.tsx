@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function TaPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { data: taMe, isLoading: meLoading } = useGetTaMe({ query: { retry: false } });
+  const { data: taMe, isLoading: meLoading } = useGetTaMe({ query: { retry: false, queryKey: [] } });
 
   if (meLoading) {
     return (

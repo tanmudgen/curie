@@ -1,66 +1,43 @@
 # Cohort Table
 
-A live Q&A tool used alongside Zoom classes. Students drop questions onto a shared table, vote on what others are stuck on, and reply with peer answers. TAs coordinate via a private slide-out desk — claiming questions and grouping related ones — without gatekeeping or approving anything.
-
-## Run & Operate
-
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, served at `/api`)
-- `pnpm --filter @workspace/cohort-table run dev` — run the React frontend
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
-- Required env: `SESSION_SECRET` — cookie signing secret (already in Replit Secrets)
-- Optional env: `TA_PASSWORD` — shared TA password (default: `cohort2024`)
+A live, mobile-friendly question queue for Zoom classes. Students join a room by code and ask questions, vote, reply, and mark themselves blocked — no account required. TAs get a private slide-out desk to claim questions, create groups, and manage the live queue.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- Frontend: React + Vite, Tailwind CSS, framer-motion, wouter, TanStack Query
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (v3), drizzle-zod
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- **Frontend**: React + Vite + Tailwind + shadcn/ui (`artifacts/cohort-table`)
+- **API**: Express 5 + TypeScript (`artifacts/api-server`)
+- **Database**: Replit-managed Neon PostgreSQL via Drizzle ORM (`lib/db`)
+- **API contract**: OpenAPI spec + Orval codegen → React Query hooks (`lib/api-spec`, `lib/api-client-react`)
 
-## Where things live
+## How to run
 
-- `lib/api-spec/openapi.yaml` — single source of truth for all API contracts
-- `lib/db/src/schema/` — Drizzle table definitions (rooms, questions, replies, votes, follows, blocked, claims, groups, helpful)
-- `artifacts/api-server/src/routes/` — Express route handlers (rooms.ts, questions.ts, ta.ts)
-- `artifacts/api-server/src/lib/` — server helpers (questions-query.ts for complex SQL, ta-auth.ts for session cookies)
-- `artifacts/cohort-table/src/` — React frontend
+Both workflows start automatically. The app is available at the root preview path (`/`).
 
-## Architecture decisions
+- **Frontend** — `pnpm --filter @workspace/cohort-table run dev`
+- **API server** — `pnpm --filter @workspace/api-server run dev` (builds with esbuild, starts on `$PORT`)
 
-- **Short polling over WebSockets**: questions list polls every 4s, room pulse every 10s. Sufficient for cohort-sized sessions; avoids deployment complexity.
-- **Signed cookie sessions for TAs**: HTTP-only signed cookie using HMAC-SHA256 with SESSION_SECRET. No DB session store needed.
-- **Raw SQL for aggregated question queries**: Drizzle doesn't compose complex GROUP BY + EXISTS + subquery patterns well; the question list query uses `pool.query()` for the rich aggregate view (vote count, follow count, blocked count, claimed TA, group info, viewer-specific booleans, rising score).
-- **Rising score formula**: `(votes × 2) + (blocked × 3) + (minutes_waiting / 2) − (claimed ? 5 : 0)`.
-- **Non-destructive question groups**: Questions keep all their own votes, replies, and content when grouped. Groups add shared context on top.
-- **Codegen barrel patch**: Orval writes `export * from './generated/types'` in the api-zod barrel even when the `schemas` output option is removed. The codegen script in `lib/api-spec/package.json` strips that line after orval runs via a Node.js one-liner.
+## Database
 
-## Product
+Schema is managed with Drizzle Kit. To push schema changes:
 
-- **Students**: Join any room with a code. Post named or anonymous questions. Upvote, follow, mark blocked, reply.
-- **Sort views**: Rising (momentum), Unanswered, Answered, My activity (authored or replied).
-- **TAs**: Sign in with shared password. Slide-out desk shows: My claims, Needs a TA, Question groups, Live queue.
-- **Question groups**: TA creates a group title linking related cards. Each card keeps its own thread. A shared group reply appears on every card in the group.
-- **Default room**: `AGENTS-W4` — Agent Builders, Week 4.
+```
+pnpm --filter @workspace/db run push
+```
+
+The `DATABASE_URL` is injected automatically by Replit. No manual setup needed.
+
+## Secrets
+
+| Secret | Purpose |
+|---|---|
+| `SESSION_SECRET` | Signs TA session cookies |
+| `TA_PASSWORD` | Shared TA login password (default: `cohort2024` — change before sharing) |
+
+## Rooms
+
+A default room `AGENTS-W4` is seeded. To add more rooms, insert directly into the `rooms` table or add a seed script.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-- Always run `pnpm --filter @workspace/api-spec run codegen` after spec changes. The script patches the api-zod barrel after orval runs.
-- The `lib/api-zod/src/index.ts` barrel is regenerated by orval on each codegen run. The codegen script strips `export * from './generated/types'` immediately after.
-- Google Fonts `@import url(...)` must be the **first line** of `index.css` — before `@import 'tailwindcss'`.
-- TA_PASSWORD defaults to `cohort2024` if not set. Set it in Replit Secrets for production.
-- API server uses `pool.query()` (raw SQL) for question list queries — Drizzle ORM is used only for simple single-table inserts.
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Keep the project's existing monorepo structure (pnpm workspaces).
+- Do not restructure or migrate the stack without explicit request.

@@ -691,6 +691,7 @@ components:
         claimedByTa: { type: ["string", "null"] }
         groupId: { type: ["number", "null"] }
         groupTitle: { type: ["string", "null"] }
+        isResolved: { type: boolean }
         isInLiveQueue: { type: boolean }
         viewerVoted: { type: boolean }
         viewerFollows: { type: boolean }

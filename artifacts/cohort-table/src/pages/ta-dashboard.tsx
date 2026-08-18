@@ -13,7 +13,7 @@ function generateRoomCode() {
 
 export function TaDashboardPage() {
   const [, setLocation] = useLocation();
-  const { data: taMe, isLoading } = useGetTaMe({ query: { retry: false } });
+  const { data: taMe, isLoading } = useGetTaMe({ query: { retry: false, queryKey: [] } });
   const [joinCode, setJoinCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState(() => generateRoomCode());
   const logout = useTaLogout();
