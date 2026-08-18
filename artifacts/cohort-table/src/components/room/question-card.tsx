@@ -23,7 +23,19 @@ import { MentionInput } from './mention-input';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 
-export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }: { question: Question, index: number, roomCode: string, isTaMode?: boolean, onTaAction?: () => void }) {
+const SPRING = { type: 'spring', stiffness: 90, damping: 16, mass: 1.1 } as const;
+
+export function QuestionCard({
+  question, index, roomCode, isTaMode, onTaAction, isSpotlighted, onSpotlight,
+}: {
+  question: Question;
+  index: number;
+  roomCode: string;
+  isTaMode?: boolean;
+  onTaAction?: () => void;
+  isSpotlighted?: boolean;
+  onSpotlight?: () => void;
+}) {
   const deviceId = useDeviceId();
   const { name: displayName } = useDisplayName();
   const participants = useParticipants(roomCode);
@@ -38,10 +50,8 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const resolve = useResolveQuestion();
   const unresolve = useUnresolveQuestion();
 
-  // Optimistic UI state
   const [optVote, setOptVote] = useState({ voted: !!question.viewerVoted, count: question.voteCount });
   const [optFollow, setOptFollow] = useState({ followed: !!question.viewerFollows, count: question.followCount });
-  
   const [showReplies, setShowReplies] = useState(question.replyCount > 0);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyBody, setReplyBody] = useState('');
@@ -51,11 +61,11 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
     setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
   }, [question.voteCount, question.viewerVoted]);
 
-  const { data: detail } = useGetQuestion(question.id, { deviceId }, { 
-    query: { 
+  const { data: detail } = useGetQuestion(question.id, { deviceId }, {
+    query: {
       enabled: showReplies,
-      queryKey: getGetQuestionQueryKey(question.id, { deviceId })
-    } 
+      queryKey: getGetQuestionQueryKey(question.id, { deviceId }),
+    },
   });
 
   const createReply = useCreateReply();
@@ -74,7 +84,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
     onSuccess: () => { onTaAction?.(); },
   });
 
-  let accentColor = 'var(--coral)'; // default unanswered
+  let accentColor = 'var(--coral)';
   if (question.status === 'answered') accentColor = 'var(--green)';
   else if (question.risingScore && question.risingScore > 10) accentColor = 'var(--gold)';
 
@@ -100,13 +110,10 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   };
 
   const refresh = () => onTaAction?.();
-
   const handleClaim = () => claim.mutate({ id: question.id }, { onSuccess: refresh });
   const handleRelease = () => release.mutate({ id: question.id }, { onSuccess: refresh });
   const handleResolve = () => resolve.mutate({ id: question.id }, { onSuccess: refresh });
-  const handleUnresolve = () => {
-    unresolve.mutate({ id: question.id }, { onSuccess: refresh });
-  };
+  const handleUnresolve = () => unresolve.mutate({ id: question.id }, { onSuccess: refresh });
 
   const handleDelete = () => {
     if (!confirmDelete) {
@@ -120,62 +127,139 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const submitReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyBody.trim()) return;
-    createReply.mutate({ id: question.id, data: { body: replyBody, deviceId, authorName: displayName || undefined } }, {
-      onSuccess: () => {
-        setReplyBody('');
-        setShowReplyForm(false);
-        setShowReplies(true);
-        queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
+    createReply.mutate(
+      { id: question.id, data: { body: replyBody, deviceId, authorName: displayName || undefined } },
+      {
+        onSuccess: () => {
+          setReplyBody('');
+          setShowReplyForm(false);
+          setShowReplies(true);
+          queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
+        },
       },
-    });
+    );
   };
 
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
 
+  // Spotlight shadow — warm amber glow on top of the normal depth shadow
+  const normalShadow =
+    '0 17px 30px rgba(58,55,43,0.12), 0 3px 7px rgba(58,55,43,0.07)';
+  const spotlightShadow =
+    '0 40px 72px rgba(58,55,43,0.28), 0 10px 22px rgba(58,55,43,0.16), 0 0 0 2.5px var(--accent), 0 0 40px 4px rgba(211,168,64,0.18)';
+
   return (
     <motion.article
       id={`question-${question.id}`}
+      layout
       initial={{ opacity: 0, y: -100, rotate: -3, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-      transition={{ 
-        type: "spring", stiffness: 100, damping: 15, mass: 1.2,
-        delay: Math.min(index * 0.07, 1) 
+      animate={{
+        opacity: 1, y: 0, rotate: 0, scale: isSpotlighted ? 1.012 : 1,
+        boxShadow: isSpotlighted ? spotlightShadow : normalShadow,
+        zIndex: isSpotlighted ? 10 : 0,
       }}
-      className="card-bg grid grid-cols-[54px_1fr] md:grid-cols-[76px_1fr] border border-[rgba(23,49,58,0.18)] rounded-[9px_17px_15px_7px] shadow-[0_17px_30px_rgba(58,55,43,0.12),0_3px_7px_rgba(58,55,43,0.07)] overflow-hidden transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_24px_38px_rgba(58,55,43,0.15),0_4px_9px_rgba(58,55,43,0.08)]"
+      transition={index === 0 ? SPRING : { ...SPRING, delay: Math.min(index * 0.07, 1) }}
+      className="card-bg grid grid-cols-[54px_1fr] md:grid-cols-[76px_1fr] border border-[rgba(23,49,58,0.18)] rounded-[9px_17px_15px_7px] overflow-hidden relative"
       style={{ '--accent': accentColor } as React.CSSProperties}
     >
+      {/* Spotlight glow overlay — warm parchment shimmer */}
+      <AnimatePresence>
+        {isSpotlighted && (
+          <motion.div
+            key="glow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="absolute inset-0 pointer-events-none rounded-[9px_17px_15px_7px]"
+            style={{
+              background:
+                'radial-gradient(ellipse at 60% 0%, rgba(211,190,120,0.13) 0%, transparent 70%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Vote column ── */}
       <div className="border-r border-border bg-[rgba(222,213,195,0.38)] flex flex-col items-center justify-center p-[7px] md:p-[12px]">
-        <motion.button 
+        <motion.button
           onClick={handleVote}
           whileTap={{ scale: 0.9 }}
-          className={`w-[39px] h-[52px] md:w-[46px] md:h-[58px] border rounded-[50%_50%_8px_8px] flex flex-col items-center justify-center shadow-[0_5px_9px_rgba(58,55,43,0.08)] transition-colors
-            ${optVote.voted 
-              ? 'bg-primary text-[#fff8e9] border-primary' 
+          animate={{
+            width: isSpotlighted ? 56 : 46,
+            height: isSpotlighted ? 72 : 58,
+          }}
+          transition={SPRING}
+          className={`border rounded-[50%_50%_8px_8px] flex flex-col items-center justify-center shadow-[0_5px_9px_rgba(58,55,43,0.08)] transition-colors
+            ${optVote.voted
+              ? 'bg-primary text-[#fff8e9] border-primary'
               : 'bg-[#faf4e6] text-primary border-[rgba(44,114,93,0.28)]'
             }`}
           aria-label="Upvote question"
         >
           <span className="text-[14px] leading-none mb-1">↑</span>
-          <strong className="font-serif font-normal text-[20px] leading-none">{optVote.count}</strong>
+          <motion.strong
+            animate={{ fontSize: isSpotlighted ? '28px' : '20px' }}
+            transition={SPRING}
+            className="font-serif font-normal leading-none"
+          >
+            {optVote.count}
+          </motion.strong>
         </motion.button>
         <small className="mt-[8px] text-[7px] uppercase tracking-[0.09em] text-muted-foreground">votes</small>
       </div>
-      
-      <div className="p-[15px_14px] md:p-[18px_20px_17px] border-t-[4px]" style={{ borderColor: accentColor }}>
+
+      {/* ── Content column ── */}
+      <motion.div
+        layout
+        animate={{
+          padding: isSpotlighted ? '22px 24px 20px' : '15px 14px',
+          borderTopWidth: isSpotlighted ? 7 : 4,
+        }}
+        transition={SPRING}
+        style={{ borderTopStyle: 'solid', borderTopColor: accentColor }}
+      >
+        {/* Spotlight badge */}
+        <AnimatePresence>
+          {isSpotlighted && (
+            <motion.div
+              key="badge"
+              initial={{ opacity: 0, y: -6, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.9 }}
+              transition={SPRING}
+              className="inline-flex items-center gap-[5px] mb-3 text-[7px] uppercase tracking-[0.14em] font-black"
+              style={{ color: accentColor }}
+            >
+              <span>⬡</span>
+              <span>Spotlighted</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex justify-between gap-[12px] text-muted-foreground text-[8px] uppercase tracking-[0.09em] mb-2">
           <span>
-            {question.status === 'answered' ? <b style={{color: accentColor}}>Answered</b> : <b style={{color: accentColor}}>{question.risingScore && question.risingScore > 10 ? 'Rising' : 'Unanswered'}</b>}
+            {question.status === 'answered'
+              ? <b style={{ color: accentColor }}>Answered</b>
+              : <b style={{ color: accentColor }}>{question.risingScore && question.risingScore > 10 ? 'Rising' : 'Unanswered'}</b>}
             {' · '}asked by {question.authorLabel}
-            {question.viewerAsked && <span className="ml-2 px-1 border border-border rounded bg-[rgba(0,0,0,0.05)] text-[7px]">You</span>}
+            {question.viewerAsked && (
+              <span className="ml-2 px-1 border border-border rounded bg-[rgba(0,0,0,0.05)] text-[7px]">You</span>
+            )}
           </span>
           <span className="hidden sm:inline">{timeAgo}</span>
         </div>
-        
-        <h3 className="font-serif font-normal text-[21px] md:text-[24px] leading-[1.1] tracking-[-0.025em] m-[14px_0_9px]">
+
+        <motion.h3
+          layout
+          animate={{ fontSize: isSpotlighted ? '30px' : '21px' }}
+          transition={SPRING}
+          className="font-serif font-normal leading-[1.1] tracking-[-0.025em] m-[14px_0_9px]"
+        >
           {question.title}
-        </h3>
-        
+        </motion.h3>
+
         {question.body && (
           <p className="text-[11px] leading-[1.5] text-muted-foreground m-[0_0_14px]">
             {question.body}
@@ -192,7 +276,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
           </div>
         )}
 
-        {/* TA controls — only in TA mode */}
+        {/* TA controls */}
         {isTaMode && (
           <div className="flex items-center gap-[8px] mt-[10px] pt-[10px] border-t border-dashed border-border/60 flex-wrap">
             {question.isResolved ? (
@@ -208,17 +292,11 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
             ) : (
               <>
                 {question.claimedByTa ? (
-                  <button
-                    onClick={handleRelease}
-                    className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors"
-                  >
+                  <button onClick={handleRelease} className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
                     Release claim
                   </button>
                 ) : (
-                  <button
-                    onClick={handleClaim}
-                    className="text-[7px] uppercase tracking-widest font-bold text-primary hover:opacity-70 transition-colors"
-                  >
+                  <button onClick={handleClaim} className="text-[7px] uppercase tracking-widest font-bold text-primary hover:opacity-70 transition-colors">
                     Claim →
                   </button>
                 )}
@@ -235,6 +313,20 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                 </button>
               </>
             )}
+
+            {/* Spotlight toggle */}
+            <button
+              onClick={onSpotlight}
+              className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors
+                ${isSpotlighted
+                  ? 'border-[var(--gold,#c9a227)] text-[var(--gold,#c9a227)] bg-[rgba(211,168,64,0.1)] hover:bg-[rgba(211,168,64,0.2)]'
+                  : 'border-border text-muted-foreground hover:border-[var(--gold,#c9a227)] hover:text-[var(--gold,#c9a227)]'
+                }`}
+            >
+              {isSpotlighted ? '⬡ Unspotlight' : '⬡ Spotlight'}
+            </button>
+
+            {/* Delete */}
             <button
               onClick={handleDelete}
               disabled={deleteQuestion.isPending}
@@ -249,7 +341,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
           </div>
         )}
 
-        {/* Action bar + inline reply — unified row */}
+        {/* Action bar + inline reply */}
         <div className="mt-[14px] pt-[12px] border-t border-border">
           <div className="flex items-end gap-2">
             <AnimatePresence mode="wait" initial={false}>
@@ -262,18 +354,26 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                   transition={{ duration: 0.12 }}
                   className="flex items-center gap-[9px] md:gap-[13px] flex-1 flex-wrap"
                 >
-                  <button onClick={handleFollow} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
-                    ${optFollow.followed
-                      ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
-                      : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
+                  <button
+                    onClick={handleFollow}
+                    className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
+                      ${optFollow.followed
+                        ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}
+                  >
                     Follow · {optFollow.count}
                   </button>
                   {question.replyCount > 0 && (
-                    <button onClick={() => setShowReplies(!showReplies)} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
-                      ${showReplies
-                        ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
-                        : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
-                      {showReplies ? `Hide ${question.replyCount === 1 ? 'reply' : 'replies'}` : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
+                    <button
+                      onClick={() => setShowReplies(!showReplies)}
+                      className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
+                        ${showReplies
+                          ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}
+                    >
+                      {showReplies
+                        ? `Hide ${question.replyCount === 1 ? 'reply' : 'replies'}`
+                        : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
                     </button>
                   )}
                   {question.claimedByTa && !isTaMode && (
@@ -306,7 +406,6 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
               )}
             </AnimatePresence>
 
-            {/* Reply / Send — same position */}
             <button
               type="button"
               onClick={() => {
@@ -324,10 +423,10 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
           </div>
         </div>
 
-        {/* Replies List */}
+        {/* Replies */}
         <AnimatePresence>
           {showReplies && detail && detail.replies && (
-            <motion.div 
+            <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -348,13 +447,14 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                   <div key={reply.id} className={`p-3 rounded-md bg-[rgba(255,255,255,0.4)] border ${reply.isTa ? 'border-primary/20' : 'border-border/50'}`}>
                     <div className="flex justify-between mb-1">
                       <span className="text-[8px] uppercase tracking-[0.1em] font-bold flex items-center gap-1">
-                        {reply.authorLabel} {reply.isTa && <span className="bg-primary text-primary-foreground px-1 rounded-[2px] text-[6px]">TA</span>}
+                        {reply.authorLabel}
+                        {reply.isTa && <span className="bg-primary text-primary-foreground px-1 rounded-[2px] text-[6px]">TA</span>}
                       </span>
-                      <button 
+                      <button
                         onClick={() => {
                           const action = reply.viewerMarkedHelpful ? unmarkHelpful : markHelpful;
                           action.mutate({ id: reply.id, data: { deviceId } }, {
-                            onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] })
+                            onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] }),
                           });
                         }}
                         className={`flex items-center gap-[5px] rounded-full px-[8px] py-[3px] border text-[11px] transition-colors cursor-pointer
@@ -374,8 +474,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
             </motion.div>
           )}
         </AnimatePresence>
-
-      </div>
+      </motion.div>
     </motion.article>
   );
 }

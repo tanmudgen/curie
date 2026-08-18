@@ -143,6 +143,7 @@ function TaLoginPage({ roomCode }: { roomCode: string }) {
 function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) {
   const deviceId = useDeviceId();
   const [filter, setFilter] = useState<ListQuestionsView>(ListQuestionsView.rising);
+  const [spotlightedId, setSpotlightedId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const logout = useTaLogout();
   const [, setLocation] = useLocation();
@@ -234,6 +235,8 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
                   roomCode={roomCode}
                   isTaMode
                   onTaAction={refetchQuestions}
+                  isSpotlighted={spotlightedId === q.id}
+                  onSpotlight={() => setSpotlightedId(prev => prev === q.id ? null : q.id)}
                 />
               ))}
             </AnimatePresence>
