@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Question, 
@@ -34,8 +34,9 @@ export function QuestionCard({
   isTaMode?: boolean;
   onTaAction?: () => void;
   isSpotlighted?: boolean;
-  onSpotlight?: () => void;
+  onSpotlight?: (rect: DOMRect) => void;
 }) {
+  const articleRef = useRef<HTMLElement>(null);
   const deviceId = useDeviceId();
   const { name: displayName } = useDisplayName();
   const participants = useParticipants(roomCode);
@@ -124,6 +125,11 @@ export function QuestionCard({
     }
   };
 
+  const handleSpotlight = () => {
+    const rect = articleRef.current?.getBoundingClientRect();
+    if (rect) onSpotlight?.(rect);
+  };
+
   const submitReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyBody.trim()) return;
@@ -143,55 +149,29 @@ export function QuestionCard({
 
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
 
-  // Spotlight shadow — warm amber glow on top of the normal depth shadow
-  const normalShadow =
-    '0 17px 30px rgba(58,55,43,0.12), 0 3px 7px rgba(58,55,43,0.07)';
-  const spotlightShadow =
-    '0 40px 72px rgba(58,55,43,0.28), 0 10px 22px rgba(58,55,43,0.16), 0 0 0 2.5px var(--accent), 0 0 40px 4px rgba(211,168,64,0.18)';
-
   return (
     <motion.article
+      ref={articleRef as React.RefObject<HTMLElement>}
       id={`question-${question.id}`}
-      layout
       initial={{ opacity: 0, y: -100, rotate: -3, scale: 0.96 }}
       animate={{
-        opacity: 1, y: 0, rotate: 0, scale: isSpotlighted ? 1.012 : 1,
-        boxShadow: isSpotlighted ? spotlightShadow : normalShadow,
-        zIndex: isSpotlighted ? 10 : 0,
+        opacity: isSpotlighted ? 0 : 1,
+        y: 0, rotate: 0, scale: 1,
+        boxShadow: '0 17px 30px rgba(58,55,43,0.12), 0 3px 7px rgba(58,55,43,0.07)',
       }}
       transition={index === 0 ? SPRING : { ...SPRING, delay: Math.min(index * 0.07, 1) }}
-      className="card-bg grid grid-cols-[54px_1fr] md:grid-cols-[76px_1fr] border border-[rgba(23,49,58,0.18)] rounded-[9px_17px_15px_7px] overflow-hidden relative"
-      style={{ '--accent': accentColor } as React.CSSProperties}
+      style={{
+        pointerEvents: isSpotlighted ? 'none' : 'auto',
+        '--accent': accentColor,
+      } as React.CSSProperties}
+      className="card-bg grid grid-cols-[54px_1fr] md:grid-cols-[76px_1fr] border border-[rgba(23,49,58,0.18)] rounded-[9px_17px_15px_7px] shadow-[0_17px_30px_rgba(58,55,43,0.12),0_3px_7px_rgba(58,55,43,0.07)] overflow-hidden transition-shadow duration-300 hover:-translate-y-[3px] hover:shadow-[0_24px_38px_rgba(58,55,43,0.15),0_4px_9px_rgba(58,55,43,0.08)]"
     >
-      {/* Spotlight glow overlay — warm parchment shimmer */}
-      <AnimatePresence>
-        {isSpotlighted && (
-          <motion.div
-            key="glow"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            className="absolute inset-0 pointer-events-none rounded-[9px_17px_15px_7px]"
-            style={{
-              background:
-                'radial-gradient(ellipse at 60% 0%, rgba(211,190,120,0.13) 0%, transparent 70%)',
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Vote column ── */}
+      {/* Vote column */}
       <div className="border-r border-border bg-[rgba(222,213,195,0.38)] flex flex-col items-center justify-center p-[7px] md:p-[12px]">
         <motion.button
           onClick={handleVote}
           whileTap={{ scale: 0.9 }}
-          animate={{
-            width: isSpotlighted ? 56 : 46,
-            height: isSpotlighted ? 72 : 58,
-          }}
-          transition={SPRING}
-          className={`border rounded-[50%_50%_8px_8px] flex flex-col items-center justify-center shadow-[0_5px_9px_rgba(58,55,43,0.08)] transition-colors
+          className={`w-[39px] h-[52px] md:w-[46px] md:h-[58px] border rounded-[50%_50%_8px_8px] flex flex-col items-center justify-center shadow-[0_5px_9px_rgba(58,55,43,0.08)] transition-colors
             ${optVote.voted
               ? 'bg-primary text-[#fff8e9] border-primary'
               : 'bg-[#faf4e6] text-primary border-[rgba(44,114,93,0.28)]'
@@ -199,45 +179,13 @@ export function QuestionCard({
           aria-label="Upvote question"
         >
           <span className="text-[14px] leading-none mb-1">↑</span>
-          <motion.strong
-            animate={{ fontSize: isSpotlighted ? '28px' : '20px' }}
-            transition={SPRING}
-            className="font-serif font-normal leading-none"
-          >
-            {optVote.count}
-          </motion.strong>
+          <strong className="font-serif font-normal text-[20px] leading-none">{optVote.count}</strong>
         </motion.button>
         <small className="mt-[8px] text-[7px] uppercase tracking-[0.09em] text-muted-foreground">votes</small>
       </div>
 
-      {/* ── Content column ── */}
-      <motion.div
-        layout
-        animate={{
-          padding: isSpotlighted ? '22px 24px 20px' : '15px 14px',
-          borderTopWidth: isSpotlighted ? 7 : 4,
-        }}
-        transition={SPRING}
-        style={{ borderTopStyle: 'solid', borderTopColor: accentColor }}
-      >
-        {/* Spotlight badge */}
-        <AnimatePresence>
-          {isSpotlighted && (
-            <motion.div
-              key="badge"
-              initial={{ opacity: 0, y: -6, scale: 0.85 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.9 }}
-              transition={SPRING}
-              className="inline-flex items-center gap-[5px] mb-3 text-[7px] uppercase tracking-[0.14em] font-black"
-              style={{ color: accentColor }}
-            >
-              <span>⬡</span>
-              <span>Spotlighted</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+      {/* Content column */}
+      <div className="p-[15px_14px] md:p-[18px_20px_17px] border-t-[4px]" style={{ borderColor: accentColor }}>
         <div className="flex justify-between gap-[12px] text-muted-foreground text-[8px] uppercase tracking-[0.09em] mb-2">
           <span>
             {question.status === 'answered'
@@ -251,14 +199,9 @@ export function QuestionCard({
           <span className="hidden sm:inline">{timeAgo}</span>
         </div>
 
-        <motion.h3
-          layout
-          animate={{ fontSize: isSpotlighted ? '30px' : '21px' }}
-          transition={SPRING}
-          className="font-serif font-normal leading-[1.1] tracking-[-0.025em] m-[14px_0_9px]"
-        >
+        <h3 className="font-serif font-normal text-[21px] md:text-[24px] leading-[1.1] tracking-[-0.025em] m-[14px_0_9px]">
           {question.title}
-        </motion.h3>
+        </h3>
 
         {question.body && (
           <p className="text-[11px] leading-[1.5] text-muted-foreground m-[0_0_14px]">
@@ -314,16 +257,16 @@ export function QuestionCard({
               </>
             )}
 
-            {/* Spotlight toggle */}
+            {/* Spotlight */}
             <button
-              onClick={onSpotlight}
+              onClick={handleSpotlight}
               className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors
                 ${isSpotlighted
-                  ? 'border-[var(--gold,#c9a227)] text-[var(--gold,#c9a227)] bg-[rgba(211,168,64,0.1)] hover:bg-[rgba(211,168,64,0.2)]'
+                  ? 'border-[var(--gold,#c9a227)] text-[var(--gold,#c9a227)] bg-[rgba(201,162,39,0.1)]'
                   : 'border-border text-muted-foreground hover:border-[var(--gold,#c9a227)] hover:text-[var(--gold,#c9a227)]'
                 }`}
             >
-              {isSpotlighted ? '⬡ Unspotlight' : '⬡ Spotlight'}
+              ⬡ Spotlight
             </button>
 
             {/* Delete */}
@@ -341,7 +284,7 @@ export function QuestionCard({
           </div>
         )}
 
-        {/* Action bar + inline reply */}
+        {/* Action bar */}
         <div className="mt-[14px] pt-[12px] border-t border-border">
           <div className="flex items-end gap-2">
             <AnimatePresence mode="wait" initial={false}>
@@ -409,11 +352,8 @@ export function QuestionCard({
             <button
               type="button"
               onClick={() => {
-                if (!showReplyForm) {
-                  setShowReplyForm(true);
-                } else {
-                  submitReply({ preventDefault: () => {} } as React.FormEvent);
-                }
+                if (!showReplyForm) setShowReplyForm(true);
+                else submitReply({ preventDefault: () => {} } as React.FormEvent);
               }}
               disabled={showReplyForm && (createReply.isPending || !replyBody.trim())}
               className="dark-button h-[36px] px-5 shrink-0 self-end disabled:opacity-40"
@@ -474,7 +414,7 @@ export function QuestionCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.article>
   );
 }

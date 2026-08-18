@@ -20,6 +20,7 @@ import { PulseCard } from '@/components/room/pulse-card';
 import { QuestionComposer } from '@/components/room/question-composer';
 import { FilterTabs } from '@/components/room/filter-tabs';
 import { QuestionCard } from '@/components/room/question-card';
+import { SpotlightModal } from '@/components/room/spotlight-modal';
 import { useToast } from '@/hooks/use-toast';
 
 // ── Root: gate on auth ────────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
   const deviceId = useDeviceId();
   const [filter, setFilter] = useState<ListQuestionsView>(ListQuestionsView.rising);
   const [spotlightedId, setSpotlightedId] = useState<number | null>(null);
+  const [spotlightOrigin, setSpotlightOrigin] = useState<DOMRect | null>(null);
   const queryClient = useQueryClient();
   const logout = useTaLogout();
   const [, setLocation] = useLocation();
@@ -236,7 +238,14 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
                   isTaMode
                   onTaAction={refetchQuestions}
                   isSpotlighted={spotlightedId === q.id}
-                  onSpotlight={() => setSpotlightedId(prev => prev === q.id ? null : q.id)}
+                  onSpotlight={(rect) => {
+                    if (spotlightedId === q.id) {
+                      setSpotlightedId(null);
+                    } else {
+                      setSpotlightedId(q.id);
+                      setSpotlightOrigin(rect);
+                    }
+                  }}
                 />
               ))}
             </AnimatePresence>
@@ -249,6 +258,12 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
           </div>
         </section>
       </section>
+
+      <SpotlightModal
+        question={spotlightedId !== null ? (questions?.find(q => q.id === spotlightedId) ?? null) : null}
+        originRect={spotlightOrigin}
+        onClose={() => setSpotlightedId(null)}
+      />
     </main>
   );
 }
