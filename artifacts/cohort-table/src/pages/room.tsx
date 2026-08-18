@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams } from 'wouter';
+import { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'wouter';
 import { 
   useGetRoom, 
   useGetRoomPulse, 
@@ -9,6 +9,7 @@ import {
   getListQuestionsQueryKey
 } from '@workspace/api-client-react';
 import { useDeviceId } from '@/hooks/use-device-id';
+import { useDisplayName } from '@/hooks/use-display-name';
 import { RoomHeader } from '@/components/room/room-header';
 import { PulseCard } from '@/components/room/pulse-card';
 import { QuestionComposer } from '@/components/room/question-composer';
@@ -18,7 +19,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
+  const [, setLocation] = useLocation();
   const deviceId = useDeviceId();
+  const { name } = useDisplayName();
+
+  // Redirect nameless visitors to landing with room pre-filled
+  useEffect(() => {
+    if (!name.trim()) {
+      setLocation(`/?room=${encodeURIComponent(roomCode ?? '')}`);
+    }
+  }, [name, roomCode, setLocation]);
+
+  if (!name.trim()) return null;
   
   const [filter, setFilter] = useState<ListQuestionsView>(ListQuestionsView.rising);
   

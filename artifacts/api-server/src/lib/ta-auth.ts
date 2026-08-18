@@ -26,7 +26,8 @@ export function verifyTaName(name: string): boolean {
 }
 
 function sign(value: string): string {
-  return createHmac("sha256", SESSION_SECRET).update(value).digest("hex");
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return createHmac("sha256", SESSION_SECRET!).update(value).digest("hex");
 }
 
 export function createSessionCookie(res: Response, taName: string): void {

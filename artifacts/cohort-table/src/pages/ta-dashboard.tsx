@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { useGetTaMe, useTaLogout } from '@workspace/api-client-react';
+import { useGetTaMe, useTaLogout, getGetTaMeQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 function generateRoomCode() {
@@ -13,7 +13,7 @@ function generateRoomCode() {
 
 export function TaDashboardPage() {
   const [, setLocation] = useLocation();
-  const { data: taMe, isLoading } = useGetTaMe({ query: { retry: false, queryKey: [] } });
+  const { data: taMe, isLoading } = useGetTaMe({ query: { retry: false, queryKey: getGetTaMeQueryKey() } });
   const [joinCode, setJoinCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState(() => generateRoomCode());
   const logout = useTaLogout();
@@ -33,13 +33,28 @@ export function TaDashboardPage() {
     );
   }
 
-  const handleCreate = () => setLocation(`/ta/${generatedCode}`);
+  const ensureRoom = async (code: string) => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    await fetch(`${base}/api/ta/rooms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ roomCode: code }),
+    });
+  };
+
+  const handleCreate = async () => {
+    await ensureRoom(generatedCode);
+    setLocation(`/ta/${generatedCode}`);
+  };
+
   const handleGenerate = () => setGeneratedCode(generateRoomCode());
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
+    await ensureRoom(code);
     setLocation(`/ta/${code}`);
   };
 

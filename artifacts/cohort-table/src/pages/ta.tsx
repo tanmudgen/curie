@@ -9,6 +9,7 @@ import {
   getGetRoomPulseQueryKey,
   getListQuestionsQueryKey,
   useGetTaMe,
+  getGetTaMeQueryKey,
   useTaLogin,
   useTaLogout,
 } from '@workspace/api-client-react';
@@ -25,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function TaPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
-  const { data: taMe, isLoading: meLoading } = useGetTaMe({ query: { retry: false, queryKey: [] } });
+  const { data: taMe, isLoading: meLoading } = useGetTaMe({ query: { retry: false, queryKey: getGetTaMeQueryKey() } });
 
   if (meLoading) {
     return (

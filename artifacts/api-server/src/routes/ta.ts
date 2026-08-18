@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { pool } from "@workspace/db";
+import { pool, db, roomsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import {
   TaLoginBody,
   TaLoginResponse,
@@ -39,6 +40,42 @@ import {
 import { getQuestionsForDesk, formatQuestion } from "../lib/questions-query";
 
 const router: IRouter = Router();
+
+// POST /ta/rooms — create or open a room (upsert)
+router.post("/ta/rooms", requireTa, async (req, res): Promise<void> => {
+  const raw = (req.body as Record<string, unknown>).roomCode;
+  if (!raw || typeof raw !== "string" || raw.trim().length === 0) {
+    res.status(400).json({ error: "roomCode is required" });
+    return;
+  }
+
+  const roomCode = raw.trim().toUpperCase();
+  const cohortNameRaw = (req.body as Record<string, unknown>).cohortName;
+  const sessionNameRaw = (req.body as Record<string, unknown>).sessionName;
+
+  // Derive sensible defaults from code format "WORD-WN" → cohort "WORD", session "Week N"
+  const match = roomCode.match(/^([A-Z]+)-W(\d+)$/);
+  const cohortName = (typeof cohortNameRaw === "string" && cohortNameRaw.trim()) || (match ? match[1] : roomCode);
+  const sessionName = (typeof sessionNameRaw === "string" && sessionNameRaw.trim()) || (match ? `Week ${match[2]}` : roomCode);
+
+  await db.insert(roomsTable).values({
+    roomCode,
+    cohortName,
+    sessionName,
+    isLive: true,
+    liveVoteThreshold: 10,
+  }).onConflictDoNothing();
+
+  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.roomCode, roomCode));
+
+  res.json({
+    id: room.id,
+    roomCode: room.roomCode,
+    cohortName: room.cohortName,
+    sessionName: room.sessionName,
+    isLive: room.isLive,
+  });
+});
 
 // POST /ta/login
 router.post("/ta/login", async (req, res): Promise<void> => {
@@ -299,6 +336,24 @@ router.post("/ta/question-groups/:id/reply", requireTa, async (req, res): Promis
     taName: gr.ta_name,
     createdAt: gr.created_at.toISOString(),
   }));
+});
+
+// DELETE /ta/questions/:id — hard delete question and all related data
+router.delete("/ta/questions/:id", requireTa, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  // Delete child records first (no cascade constraints)
+  await pool.query(`DELETE FROM votes WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM follows WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM blocked WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM ta_claims WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM question_group_members WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM replies WHERE question_id = $1`, [id]);
+  await pool.query(`DELETE FROM questions WHERE id = $1`, [id]);
+
+  res.json({ ok: true });
 });
 
 // POST /ta/questions/:id/flag

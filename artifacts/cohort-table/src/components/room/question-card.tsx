@@ -6,8 +6,6 @@ import {
   useUnvoteQuestion,
   useFollowQuestion,
   useUnfollowQuestion,
-  useBlockQuestion,
-  useUnblockQuestion,
   useClaimQuestion,
   useReleaseQuestion,
   useResolveQuestion,
@@ -22,7 +20,7 @@ import { useDeviceId } from '@/hooks/use-device-id';
 import { useDisplayName } from '@/hooks/use-display-name';
 import { useParticipants } from '@/hooks/use-participants';
 import { MentionInput } from './mention-input';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 
 export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }: { question: Question, index: number, roomCode: string, isTaMode?: boolean, onTaAction?: () => void }) {
@@ -35,8 +33,6 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const unvote = useUnvoteQuestion();
   const follow = useFollowQuestion();
   const unfollow = useUnfollowQuestion();
-  const block = useBlockQuestion();
-  const unblock = useUnblockQuestion();
   const claim = useClaimQuestion();
   const release = useReleaseQuestion();
   const resolve = useResolveQuestion();
@@ -45,18 +41,14 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   // Optimistic UI state
   const [optVote, setOptVote] = useState({ voted: !!question.viewerVoted, count: question.voteCount });
   const [optFollow, setOptFollow] = useState({ followed: !!question.viewerFollows, count: question.followCount });
-  const [optBlock, setOptBlock] = useState({ blocked: !!question.viewerBlocked, count: question.blockedCount });
   
   const [showReplies, setShowReplies] = useState(question.replyCount > 0);
-  const [replyBody, setReplyBody] = useState('');
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyBody, setReplyBody] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Sync from server only when the polled data changes (not on every isPending flip)
   useEffect(() => {
-    if (!vote.isPending && !unvote.isPending) {
-      setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
   }, [question.voteCount, question.viewerVoted]);
 
   const { data: detail } = useGetQuestion(question.id, { deviceId }, { 
@@ -69,6 +61,18 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
   const createReply = useCreateReply();
   const markHelpful = useMarkReplyHelpful();
   const unmarkHelpful = useUnmarkReplyHelpful();
+
+  const deleteQuestion = useMutation({
+    mutationFn: async () => {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const res = await fetch(`${base}/api/ta/questions/${question.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Delete failed');
+    },
+    onSuccess: () => { onTaAction?.(); },
+  });
 
   let accentColor = 'var(--coral)'; // default unanswered
   if (question.status === 'answered') accentColor = 'var(--green)';
@@ -95,13 +99,21 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
     }
   };
 
-  const handleBlock = () => {
-    if (optBlock.blocked) {
-      setOptBlock(prev => ({ blocked: false, count: prev.count - 1 }));
-      unblock.mutate({ id: question.id, data: { deviceId } });
+  const refresh = () => onTaAction?.();
+
+  const handleClaim = () => claim.mutate({ id: question.id }, { onSuccess: refresh });
+  const handleRelease = () => release.mutate({ id: question.id }, { onSuccess: refresh });
+  const handleResolve = () => resolve.mutate({ id: question.id }, { onSuccess: refresh });
+  const handleUnresolve = () => {
+    unresolve.mutate({ id: question.id }, { onSuccess: refresh });
+  };
+
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
     } else {
-      setOptBlock(prev => ({ blocked: true, count: prev.count + 1 }));
-      block.mutate({ id: question.id, data: { deviceId } });
+      deleteQuestion.mutate();
     }
   };
 
@@ -115,29 +127,8 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
         setShowReplies(true);
         queryClient.invalidateQueries({ queryKey: [`/api/questions/${question.id}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
-      }
+      },
     });
-  };
-
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
-    onTaAction?.();
-  };
-
-  const handleClaim = () => {
-    claim.mutate({ id: question.id }, { onSuccess: refresh });
-  };
-
-  const handleRelease = () => {
-    release.mutate({ id: question.id }, { onSuccess: refresh });
-  };
-
-  const handleResolve = () => {
-    resolve.mutate({ id: question.id }, { onSuccess: refresh });
-  };
-
-  const handleUnresolve = () => {
-    unresolve.mutate({ id: question.id }, { onSuccess: refresh });
   };
 
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
@@ -152,7 +143,7 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
         delay: Math.min(index * 0.07, 1) 
       }}
       className="card-bg grid grid-cols-[54px_1fr] md:grid-cols-[76px_1fr] border border-[rgba(23,49,58,0.18)] rounded-[9px_17px_15px_7px] shadow-[0_17px_30px_rgba(58,55,43,0.12),0_3px_7px_rgba(58,55,43,0.07)] overflow-hidden transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_24px_38px_rgba(58,55,43,0.15),0_4px_9px_rgba(58,55,43,0.08)]"
-      style={{ '--accent': accentColor } as any}
+      style={{ '--accent': accentColor } as React.CSSProperties}
     >
       <div className="border-r border-border bg-[rgba(222,213,195,0.38)] flex flex-col items-center justify-center p-[7px] md:p-[12px]">
         <motion.button 
@@ -244,6 +235,17 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                 </button>
               </>
             )}
+            <button
+              onClick={handleDelete}
+              disabled={deleteQuestion.isPending}
+              className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors disabled:opacity-40
+                ${confirmDelete
+                  ? 'border-destructive text-destructive bg-destructive/10 hover:bg-destructive hover:text-white'
+                  : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'
+                }`}
+            >
+              {deleteQuestion.isPending ? '…' : confirmDelete ? 'Confirm delete?' : 'Delete'}
+            </button>
           </div>
         )}
 
@@ -265,12 +267,6 @@ export function QuestionCard({ question, index, roomCode, isTaMode, onTaAction }
                       ? 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
                       : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
                     Follow · {optFollow.count}
-                  </button>
-                  <button onClick={handleBlock} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer
-                    ${optBlock.blocked
-                      ? 'border-destructive text-destructive hover:bg-destructive hover:text-white'
-                      : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'}`}>
-                    I'm blocked · {optBlock.count}
                   </button>
                   {question.replyCount > 0 && (
                     <button onClick={() => setShowReplies(!showReplies)} className={`text-[7px] uppercase tracking-widest rounded-full px-[8px] py-[3px] border transition-colors cursor-pointer

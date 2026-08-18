@@ -7,8 +7,11 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export function LandingPage() {
   const [, setLocation] = useLocation();
-  const [roomCode, setRoomCode] = useState('');
   const { name, setName } = useDisplayName();
+
+  // Pre-fill room code if redirected from a direct room URL (?room=CODE)
+  const prefilledRoom = new URLSearchParams(window.location.search).get('room') ?? '';
+  const [roomCode, setRoomCode] = useState(prefilledRoom.toUpperCase());
 
   // Card flip state
   const [flipped, setFlipped] = useState(false);

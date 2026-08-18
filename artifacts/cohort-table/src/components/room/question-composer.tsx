@@ -28,7 +28,8 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/rooms/${roomCode}/similar-questions`, {
+        const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+        const res = await fetch(`${base}/api/rooms/${roomCode}/similar-questions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: title.trim() }),
