@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { createHmac } from "crypto";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
-const TA_PASSWORD = process.env.TA_PASSWORD || "cohort2024";
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const TA_PASSWORD = process.env.TA_PASSWORD;
+
+if (!SESSION_SECRET) throw new Error("SESSION_SECRET is required but not set");
+if (!TA_PASSWORD) throw new Error("TA_PASSWORD is required but not set");
 const COOKIE_NAME = "ta_session";
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 8; // 8 hours
 
