@@ -86,7 +86,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [rising, unanswered, answered, mine]
+            enum: [rising, resolved, unanswered, answered, mine]
             default: rising
         - name: deviceId
           in: query
@@ -154,6 +154,62 @@ paths:
                 $ref: "#/components/schemas/QuestionDetail"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /questions/{id}/resolve:
+    post:
+      operationId: resolveQuestion
+      tags: [questions]
+      summary: Mark a question as resolved by its author or a TA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Question resolution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveResult"
+        "403":
+          description: Only the question author or a TA may resolve it
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      operationId: unresolveQuestion
+      tags: [questions]
+      summary: Mark a question as unresolved by its author or a TA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Question resolution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveResult"
+        "403":
+          description: Only the question author or a TA may change it
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -238,6 +294,28 @@ paths:
       operationId: markReplyHelpful
       tags: [questions]
       summary: Mark a reply as helpful
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAction"
+      responses:
+        "200":
+          description: Updated helpful count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelpfulResult"
+    delete:
+      operationId: unmarkReplyHelpful
+      tags: [questions]
+      summary: Remove a helpful mark from a reply
       parameters:
         - name: id
           in: path
@@ -841,6 +919,12 @@ components:
       properties:
         helpfulCount: { type: number }
         viewerMarkedHelpful: { type: boolean }
+
+    ResolveResult:
+      type: object
+      required: [resolved]
+      properties:
+        resolved: { type: boolean }
 
     QuestionInput:
       type: object

@@ -187,6 +187,10 @@ export interface HelpfulResult {
   viewerMarkedHelpful: boolean;
 }
 
+export interface ResolveResult {
+  resolved: boolean;
+}
+
 export interface QuestionInput {
   /** @minLength 3 */
   title: string;

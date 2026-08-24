@@ -19,6 +19,7 @@ import {
 import { useDeviceId } from '@/hooks/use-device-id';
 import { useDisplayName } from '@/hooks/use-display-name';
 import { useParticipants } from '@/hooks/use-participants';
+import { useToast } from '@/hooks/use-toast';
 import { MentionInput } from './mention-input';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -41,6 +42,7 @@ export function QuestionCard({
   const { name: displayName } = useDisplayName();
   const participants = useParticipants(roomCode);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const vote = useVoteQuestion();
   const unvote = useUnvoteQuestion();
@@ -110,11 +112,27 @@ export function QuestionCard({
     }
   };
 
-  const refresh = () => onTaAction?.();
+  const refresh = () => {
+    onTaAction?.();
+    queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomCode}/questions`] });
+    queryClient.invalidateQueries({ queryKey: getGetQuestionQueryKey(question.id, { deviceId }) });
+  };
   const handleClaim = () => claim.mutate({ id: question.id }, { onSuccess: refresh });
   const handleRelease = () => release.mutate({ id: question.id }, { onSuccess: refresh });
-  const handleResolve = () => resolve.mutate({ id: question.id }, { onSuccess: refresh });
-  const handleUnresolve = () => unresolve.mutate({ id: question.id }, { onSuccess: refresh });
+  const handleResolve = () => resolve.mutate(
+    { id: question.id, data: { deviceId } },
+    {
+      onSuccess: refresh,
+      onError: () => toast({ title: 'Could not mark this question as resolved', variant: 'destructive' }),
+    },
+  );
+  const handleUnresolve = () => unresolve.mutate(
+    { id: question.id, data: { deviceId } },
+    {
+      onSuccess: refresh,
+      onError: () => toast({ title: 'Could not reopen this question', variant: 'destructive' }),
+    },
+  );
 
   const handleDelete = () => {
     if (!confirmDelete) {
@@ -188,7 +206,9 @@ export function QuestionCard({
       <div className="p-[15px_14px] md:p-[18px_20px_17px] border-t-[4px]" style={{ borderColor: accentColor }}>
         <div className="flex justify-between gap-[12px] text-muted-foreground text-[8px] uppercase tracking-[0.09em] mb-2">
           <span>
-            {question.status === 'answered'
+            {question.isResolved
+              ? <b style={{ color: accentColor }}>Resolved</b>
+              : question.status === 'answered'
               ? <b style={{ color: accentColor }}>Answered</b>
               : <b style={{ color: accentColor }}>{question.risingScore && question.risingScore > 10 ? 'Rising' : 'Unanswered'}</b>}
             {' · '}asked by {question.authorLabel}
@@ -219,20 +239,10 @@ export function QuestionCard({
           </div>
         )}
 
-        {/* TA controls */}
-        {isTaMode && (
+        {/* Resolution controls: TAs can resolve any question; students can resolve their own. */}
+        {(isTaMode || question.viewerAsked) && (
           <div className="flex items-center gap-[8px] mt-[10px] pt-[10px] border-t border-dashed border-border/60 flex-wrap">
-            {question.isResolved ? (
-              <>
-                <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
-                <button
-                  onClick={handleUnresolve}
-                  className="text-[7px] uppercase tracking-widest font-bold text-muted-foreground border border-border rounded-full px-[8px] py-[3px] hover:border-destructive hover:text-destructive transition-colors ml-2"
-                >
-                  Unresolve
-                </button>
-              </>
-            ) : (
+            {isTaMode && !question.isResolved && (
               <>
                 {question.claimedByTa ? (
                   <button onClick={handleRelease} className="text-[7px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors">
@@ -248,39 +258,58 @@ export function QuestionCard({
                     Claimed by {question.claimedByTa}
                   </span>
                 )}
-                <button
-                  onClick={handleResolve}
-                  className="text-[7px] uppercase tracking-widest font-bold text-primary border border-primary rounded-full px-[8px] py-[3px] hover:bg-primary hover:text-primary-foreground transition-colors ml-auto"
-                >
-                  ✓ Mark resolved
-                </button>
               </>
             )}
 
-            {/* Spotlight */}
-            <button
-              onClick={handleSpotlight}
-              className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors
-                ${isSpotlighted
-                  ? 'border-[var(--gold,#c9a227)] text-[var(--gold,#c9a227)] bg-[rgba(201,162,39,0.1)]'
-                  : 'border-border text-muted-foreground hover:border-[var(--gold,#c9a227)] hover:text-[var(--gold,#c9a227)]'
-                }`}
-            >
-              ⬡ Spotlight
-            </button>
+            {question.isResolved ? (
+              <>
+                <span className="text-[7px] uppercase tracking-widest text-primary font-black">✓ Resolved</span>
+                <button
+                  onClick={handleUnresolve}
+                  disabled={unresolve.isPending}
+                  className="text-[7px] uppercase tracking-widest font-bold text-muted-foreground border border-border rounded-full px-[8px] py-[3px] hover:border-destructive hover:text-destructive transition-colors disabled:opacity-40"
+                >
+                  {unresolve.isPending ? 'Reopening…' : 'Unresolve'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleResolve}
+                disabled={resolve.isPending}
+                className={`text-[7px] uppercase tracking-widest font-bold text-primary border border-primary rounded-full px-[8px] py-[3px] hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 ${isTaMode ? 'ml-auto' : ''}`}
+              >
+                {resolve.isPending ? 'Resolving…' : '✓ Mark resolved'}
+              </button>
+            )}
 
-            {/* Delete */}
-            <button
-              onClick={handleDelete}
-              disabled={deleteQuestion.isPending}
-              className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors disabled:opacity-40
-                ${confirmDelete
-                  ? 'border-destructive text-destructive bg-destructive/10 hover:bg-destructive hover:text-white'
-                  : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'
-                }`}
-            >
-              {deleteQuestion.isPending ? '…' : confirmDelete ? 'Confirm delete?' : 'Delete'}
-            </button>
+            {isTaMode && (
+              <>
+                {/* Spotlight */}
+                <button
+                  onClick={handleSpotlight}
+                  className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors
+                    ${isSpotlighted
+                      ? 'border-[var(--gold,#c9a227)] text-[var(--gold,#c9a227)] bg-[rgba(201,162,39,0.1)]'
+                      : 'border-border text-muted-foreground hover:border-[var(--gold,#c9a227)] hover:text-[var(--gold,#c9a227)]'
+                    }`}
+                >
+                  ⬡ Spotlight
+                </button>
+
+                {/* Delete */}
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteQuestion.isPending}
+                  className={`text-[7px] uppercase tracking-widest font-bold rounded-full px-[8px] py-[3px] border transition-colors disabled:opacity-40
+                    ${confirmDelete
+                      ? 'border-destructive text-destructive bg-destructive/10 hover:bg-destructive hover:text-white'
+                      : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'
+                    }`}
+                >
+                  {deleteQuestion.isPending ? '…' : confirmDelete ? 'Confirm delete?' : 'Delete'}
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -319,9 +348,14 @@ export function QuestionCard({
                         : `${question.replyCount} ${question.replyCount === 1 ? 'reply' : 'replies'}`}
                     </button>
                   )}
-                  {question.claimedByTa && !isTaMode && (
+                  {question.isResolved && !isTaMode && (
                     <span className="ml-auto font-black text-[8px] uppercase tracking-[0.08em] text-destructive p-[5px_8px] border border-destructive rounded-[2px] transform -rotate-2 shadow-sm select-none">
-                      {question.status === 'answered' ? 'Resolved' : `Claimed by ${question.claimedByTa}`}
+                      ✓ Resolved
+                    </span>
+                  )}
+                  {question.claimedByTa && !isTaMode && !question.isResolved && (
+                    <span className="ml-auto font-black text-[8px] uppercase tracking-[0.08em] text-destructive p-[5px_8px] border border-destructive rounded-[2px] transform -rotate-2 shadow-sm select-none">
+                      Claimed by {question.claimedByTa}
                     </span>
                   )}
                 </motion.div>

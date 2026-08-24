@@ -1,0 +1,1 @@
+- [OpenAPI contract discipline](openapi-contract-discipline.md) — Regenerate client hooks only after every UI-used endpoint and enum is represented in the API spec.

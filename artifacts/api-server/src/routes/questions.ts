@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { pool } from "@workspace/db";
 import {
   GetQuestionParams,
@@ -11,6 +11,7 @@ import {
   CreateReplyBody,
   MarkReplyHelpfulParams,
   MarkReplyHelpfulBody,
+  UnmarkReplyHelpfulBody,
   FollowQuestionParams,
   FollowQuestionBody,
   UnfollowQuestionParams,
@@ -28,11 +29,44 @@ import {
   UnfollowQuestionResponse,
   BlockQuestionResponse,
   UnblockQuestionResponse,
+  ResolveQuestionBody,
+  ResolveQuestionResponse,
 } from "@workspace/api-zod";
 import { getQuestionById, formatQuestion } from "../lib/questions-query";
 import { parseTaSession } from "../lib/ta-auth";
 
 const router: IRouter = Router();
+
+async function setQuestionResolved(
+  req: Request,
+  res: Response,
+  id: number,
+  resolved: boolean,
+): Promise<void> {
+  const body = ResolveQuestionBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const taSession = parseTaSession(req);
+  const questionResult = await pool.query(
+    `SELECT device_id FROM questions WHERE id = $1 AND is_flagged = false`,
+    [id],
+  );
+  if (questionResult.rows.length === 0) {
+    res.status(404).json({ error: "Question not found" });
+    return;
+  }
+
+  if (!taSession && questionResult.rows[0].device_id !== body.data.deviceId) {
+    res.status(403).json({ error: "Only the question author or a TA may change resolution" });
+    return;
+  }
+
+  await pool.query(`UPDATE questions SET is_resolved = $1 WHERE id = $2`, [resolved, id]);
+  res.json(ResolveQuestionResponse.parse({ resolved }));
+}
 
 // GET /questions/:id
 router.get("/questions/:id", async (req, res): Promise<void> => {
@@ -96,6 +130,22 @@ router.get("/questions/:id", async (req, res): Promise<void> => {
   }
 
   res.json(GetQuestionResponse.parse({ ...question, replies, groupReply }));
+});
+
+// POST /questions/:id/resolve — question author or TA
+router.post("/questions/:id/resolve", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await setQuestionResolved(req, res, id, true);
+});
+
+// DELETE /questions/:id/resolve — question author or TA
+router.delete("/questions/:id/resolve", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await setQuestionResolved(req, res, id, false);
 });
 
 // POST /questions/:id/vote
@@ -206,24 +256,24 @@ router.post("/replies/:id/helpful", async (req, res): Promise<void> => {
   }));
 });
 
-// DELETE /replies/:id/helpful?deviceId=xxx
+// DELETE /replies/:id/helpful
 router.delete("/replies/:id/helpful", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const deviceId = req.query.deviceId as string | undefined;
-  if (!deviceId) { res.status(400).json({ error: "deviceId required" }); return; }
+  const body = UnmarkReplyHelpfulBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
   await pool.query(`
     DELETE FROM helpful_marks WHERE reply_id = $1 AND device_id = $2
-  `, [id, deviceId]);
+  `, [id, body.data.deviceId]);
 
   const result = await pool.query(`
     SELECT COUNT(*)::int AS helpful_count,
       EXISTS(SELECT 1 FROM helpful_marks WHERE reply_id = $1 AND device_id = $2) AS viewer_marked
     FROM helpful_marks WHERE reply_id = $1
-  `, [id, deviceId]);
+  `, [id, body.data.deviceId]);
 
   res.json(MarkReplyHelpfulResponse.parse({
     helpfulCount: result.rows[0].helpful_count,

@@ -75,12 +75,12 @@ export const ListQuestionsResponseItem = zod.object({
   "blockedCount": zod.number(),
   "replyCount": zod.number(),
   "hasReplies": zod.boolean(),
-  "isResolved": zod.boolean().optional(),
   "status": zod.enum(['unanswered', 'answered']),
   "tags": zod.array(zod.string()).optional(),
   "claimedByTa": zod.string().nullish(),
   "groupId": zod.number().nullish(),
   "groupTitle": zod.string().nullish(),
+  "isResolved": zod.boolean().optional(),
   "isInLiveQueue": zod.boolean().optional(),
   "viewerVoted": zod.boolean().optional(),
   "viewerFollows": zod.boolean().optional(),
@@ -131,6 +131,7 @@ export const CreateQuestionResponse = zod.object({
   "claimedByTa": zod.string().nullish(),
   "groupId": zod.number().nullish(),
   "groupTitle": zod.string().nullish(),
+  "isResolved": zod.boolean().optional(),
   "isInLiveQueue": zod.boolean().optional(),
   "viewerVoted": zod.boolean().optional(),
   "viewerFollows": zod.boolean().optional(),
@@ -196,7 +197,39 @@ export const GetQuestionResponse = zod.object({
   "body": zod.string(),
   "taName": zod.string(),
   "createdAt": zod.string()
-}).nullish()
+}).optional()
+})
+
+
+/**
+ * @summary Mark a question as resolved by its author or a TA
+ */
+export const ResolveQuestionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResolveQuestionBody = zod.object({
+  "deviceId": zod.string()
+})
+
+export const ResolveQuestionResponse = zod.object({
+  "resolved": zod.boolean()
+})
+
+
+/**
+ * @summary Mark a question as unresolved by its author or a TA
+ */
+export const UnresolveQuestionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnresolveQuestionBody = zod.object({
+  "deviceId": zod.string()
+})
+
+export const UnresolveQuestionResponse = zod.object({
+  "resolved": zod.boolean()
 })
 
 
@@ -274,6 +307,23 @@ export const MarkReplyHelpfulBody = zod.object({
 })
 
 export const MarkReplyHelpfulResponse = zod.object({
+  "helpfulCount": zod.number(),
+  "viewerMarkedHelpful": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a helpful mark from a reply
+ */
+export const UnmarkReplyHelpfulParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnmarkReplyHelpfulBody = zod.object({
+  "deviceId": zod.string()
+})
+
+export const UnmarkReplyHelpfulResponse = zod.object({
   "helpfulCount": zod.number(),
   "viewerMarkedHelpful": zod.boolean()
 })
@@ -402,18 +452,6 @@ export const ReleaseQuestionParams = zod.object({
 export const ReleaseQuestionResponse = zod.object({
   "claimed": zod.boolean(),
   "claimedByTa": zod.string().nullable()
-})
-
-
-/**
- * @summary TA resolves a question
- */
-export const ResolveQuestionParams = zod.object({
-  "id": zod.coerce.number()
-})
-
-export const ResolveQuestionResponse = zod.object({
-  "resolved": zod.boolean()
 })
 
 
@@ -597,6 +635,7 @@ export const GetTaDeskResponse = zod.object({
   "claimedByTa": zod.string().nullish(),
   "groupId": zod.number().nullish(),
   "groupTitle": zod.string().nullish(),
+  "isResolved": zod.boolean().optional(),
   "isInLiveQueue": zod.boolean().optional(),
   "viewerVoted": zod.boolean().optional(),
   "viewerFollows": zod.boolean().optional(),
@@ -624,6 +663,7 @@ export const GetTaDeskResponse = zod.object({
   "claimedByTa": zod.string().nullish(),
   "groupId": zod.number().nullish(),
   "groupTitle": zod.string().nullish(),
+  "isResolved": zod.boolean().optional(),
   "isInLiveQueue": zod.boolean().optional(),
   "viewerVoted": zod.boolean().optional(),
   "viewerFollows": zod.boolean().optional(),
@@ -665,6 +705,7 @@ export const GetTaDeskResponse = zod.object({
   "claimedByTa": zod.string().nullish(),
   "groupId": zod.number().nullish(),
   "groupTitle": zod.string().nullish(),
+  "isResolved": zod.boolean().optional(),
   "isInLiveQueue": zod.boolean().optional(),
   "viewerVoted": zod.boolean().optional(),
   "viewerFollows": zod.boolean().optional(),

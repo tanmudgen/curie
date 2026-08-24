@@ -41,6 +41,7 @@ import type {
   QuestionInput,
   Reply,
   ReplyInput,
+  ResolveResult,
   Room,
   RoomPulse,
   SuccessResponse,
@@ -558,6 +559,150 @@ export function useGetQuestion<TData = Awaited<ReturnType<typeof getQuestion>>, 
 
 
 
+export const getResolveQuestionUrl = (id: number,) => {
+
+
+
+
+  return `/api/questions/${id}/resolve`
+}
+
+/**
+ * @summary Mark a question as resolved by its author or a TA
+ */
+export const resolveQuestion = async (id: number,
+    deviceAction: DeviceAction, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
+
+  return customFetch<ResolveResult>(getResolveQuestionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deviceAction)
+  }
+);}
+
+
+
+
+
+export const getResolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext> => {
+
+const mutationKey = ['resolveQuestion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveQuestion>>, {id: number;data: BodyType<DeviceAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  resolveQuestion(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveQuestionMutationResult = NonNullable<Awaited<ReturnType<typeof resolveQuestion>>>
+    export type ResolveQuestionMutationBody = BodyType<DeviceAction>
+    export type ResolveQuestionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark a question as resolved by its author or a TA
+ */
+export const useResolveQuestion = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveQuestion>>,
+        TError,
+        {id: number;data: BodyType<DeviceAction>},
+        TContext
+      > => {
+      return useMutation(getResolveQuestionMutationOptions(options));
+    }
+
+export const getUnresolveQuestionUrl = (id: number,) => {
+
+
+
+
+  return `/api/questions/${id}/resolve`
+}
+
+/**
+ * @summary Mark a question as unresolved by its author or a TA
+ */
+export const unresolveQuestion = async (id: number,
+    deviceAction: DeviceAction, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
+
+  return customFetch<ResolveResult>(getUnresolveQuestionUrl(id),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deviceAction)
+  }
+);}
+
+
+
+
+
+export const getUnresolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext> => {
+
+const mutationKey = ['unresolveQuestion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unresolveQuestion>>, {id: number;data: BodyType<DeviceAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  unresolveQuestion(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnresolveQuestionMutationResult = NonNullable<Awaited<ReturnType<typeof unresolveQuestion>>>
+    export type UnresolveQuestionMutationBody = BodyType<DeviceAction>
+    export type UnresolveQuestionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark a question as unresolved by its author or a TA
+ */
+export const useUnresolveQuestion = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unresolveQuestion>>,
+        TError,
+        {id: number;data: BodyType<DeviceAction>},
+        TContext
+      > => {
+      return useMutation(getUnresolveQuestionMutationOptions(options));
+    }
+
 export const getVoteQuestionUrl = (id: number,) => {
 
 
@@ -835,20 +980,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     /**
  * @summary Mark a reply as helpful
  */
-export const unmarkReplyHelpful = async (id: number, data: BodyType<DeviceAction>, options?: SecondParameter<typeof customFetch>) => {
-  return customFetch<HelpfulResult>(`/api/replies/${id}/helpful?deviceId=${encodeURIComponent(data.deviceId)}`, { method: 'DELETE', ...options });
-};
-
-export const useUnmarkReplyHelpful = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unmarkReplyHelpful>>, TError, { id: number; data: BodyType<DeviceAction> }, TContext>, request?: SecondParameter<typeof customFetch> }
-) => {
-  const mutationOptions = {
-    mutationFn: ({ id, data }: { id: number; data: BodyType<DeviceAction> }) => unmarkReplyHelpful(id, data),
-    ...options?.mutation,
-  };
-  return useMutation(mutationOptions);
-};
-
 export const useMarkReplyHelpful = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markReplyHelpful>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
@@ -858,6 +989,78 @@ export const useMarkReplyHelpful = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getMarkReplyHelpfulMutationOptions(options));
+    }
+
+export const getUnmarkReplyHelpfulUrl = (id: number,) => {
+
+
+
+
+  return `/api/replies/${id}/helpful`
+}
+
+/**
+ * @summary Remove a helpful mark from a reply
+ */
+export const unmarkReplyHelpful = async (id: number,
+    deviceAction: DeviceAction, options?: Parameters<typeof customFetch>[1]): Promise<HelpfulResult> => {
+
+  return customFetch<HelpfulResult>(getUnmarkReplyHelpfulUrl(id),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deviceAction)
+  }
+);}
+
+
+
+
+
+export const getUnmarkReplyHelpfulMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmarkReplyHelpful>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unmarkReplyHelpful>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext> => {
+
+const mutationKey = ['unmarkReplyHelpful'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmarkReplyHelpful>>, {id: number;data: BodyType<DeviceAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  unmarkReplyHelpful(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnmarkReplyHelpfulMutationResult = NonNullable<Awaited<ReturnType<typeof unmarkReplyHelpful>>>
+    export type UnmarkReplyHelpfulMutationBody = BodyType<DeviceAction>
+    export type UnmarkReplyHelpfulMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a helpful mark from a reply
+ */
+export const useUnmarkReplyHelpful = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmarkReplyHelpful>>, TError,{id: number;data: BodyType<DeviceAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unmarkReplyHelpful>>,
+        TError,
+        {id: number;data: BodyType<DeviceAction>},
+        TContext
+      > => {
+      return useMutation(getUnmarkReplyHelpfulMutationOptions(options));
     }
 
 export const getFollowQuestionUrl = (id: number,) => {
@@ -1508,46 +1711,6 @@ export const useReleaseQuestion = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getReleaseQuestionMutationOptions(options));
     }
-
-export type ResolveResult = { resolved: boolean }
-
-export const getResolveQuestionUrl = (id: number) => `/api/ta/questions/${id}/resolve`
-
-export const resolveQuestion = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
-  return customFetch<ResolveResult>(getResolveQuestionUrl(id), { ...options, method: 'POST' });
-}
-
-export const getResolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext> => {
-  const mutationKey = ['resolveQuestion'];
-  const { mutation: mutationOptions, request: requestOptions } = options ?? { mutation: { mutationKey } };
-  const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveQuestion>>, {id: number}> = ({ id }) => resolveQuestion(id, requestOptions);
-  return { mutationFn, ...mutationOptions };
-}
-
-export const useResolveQuestion = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof resolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
-) => useMutation(getResolveQuestionMutationOptions(options));
-
-export const getUnresolveQuestionUrl = (id: number) => `/api/ta/questions/${id}/resolve`
-
-export const unresolveQuestion = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ResolveResult> => {
-  return customFetch<ResolveResult>(getUnresolveQuestionUrl(id), { ...options, method: 'DELETE' });
-}
-
-export const getUnresolveQuestionMutationOptions = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
-): UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext> => {
-  const mutationKey = ['unresolveQuestion'];
-  const { mutation: mutationOptions, request: requestOptions } = options ?? { mutation: { mutationKey } };
-  const mutationFn: MutationFunction<Awaited<ReturnType<typeof unresolveQuestion>>, {id: number}> = ({ id }) => unresolveQuestion(id, requestOptions);
-  return { mutationFn, ...mutationOptions };
-}
-
-export const useUnresolveQuestion = <TError = ErrorType<ErrorResponse>, TContext = unknown>(
-  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof unresolveQuestion>>, TError, {id: number}, TContext>, request?: SecondParameter<typeof customFetch> }
-) => useMutation(getUnresolveQuestionMutationOptions(options));
 
 export const getListQuestionGroupsUrl = (params?: ListQuestionGroupsParams,) => {
   const normalizedParams = new URLSearchParams();
