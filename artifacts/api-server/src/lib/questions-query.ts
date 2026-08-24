@@ -130,7 +130,8 @@ export async function getQuestionsForRoom(
   const params: (string | boolean)[] = [roomCode, deviceId];
 
   let whereClause = `WHERE q.room_code = $1 AND q.is_flagged = false`;
-  let orderClause = `ORDER BY (${RISING_SCORE_EXPR}) DESC`;
+  const primaryOrderClause = `ORDER BY COUNT(DISTINCT v.id) DESC, q.created_at ASC, q.id ASC`;
+  let orderClause = primaryOrderClause;
 
   // Rising view excludes resolved questions
   if (view === "rising" || view === undefined) {
@@ -139,15 +140,12 @@ export async function getQuestionsForRoom(
 
   if (view === "resolved") {
     whereClause += ` AND q.is_resolved = true`;
-    orderClause = `ORDER BY q.created_at DESC`;
   } else if (view === "unanswered") {
     whereClause += ` AND NOT EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;
   } else if (view === "answered") {
     whereClause += ` AND EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.is_flagged = false)`;
-    orderClause = `ORDER BY last_reply_at DESC NULLS LAST`;
   } else if (view === "mine") {
     whereClause += ` AND (q.device_id = $2 OR EXISTS (SELECT 1 FROM replies r2 WHERE r2.question_id = q.id AND r2.device_id = $2 AND r2.is_flagged = false))`;
-    orderClause = `ORDER BY q.created_at DESC`;
   }
 
   const sql = `

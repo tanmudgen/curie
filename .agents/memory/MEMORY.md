@@ -1,1 +1,2 @@
 - [OpenAPI contract discipline](openapi-contract-discipline.md) — Regenerate client hooks only after every UI-used endpoint and enum is represented in the API spec.
+- [Database test setup](database-test-setup.md) — Execute temporary SQL fixture statements separately because prepared SQL calls reject multiple commands.

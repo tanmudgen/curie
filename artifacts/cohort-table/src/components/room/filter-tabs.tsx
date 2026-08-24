@@ -33,7 +33,7 @@ export function FilterTabs({
         ))}
       </div>
       <span className="hidden md:inline text-[9px] text-muted-foreground">
-        Sorted by votes + waiting time
+        Sorted by upvotes · oldest first
       </span>
     </div>
   );
