@@ -38,6 +38,7 @@ import {
   requireTa,
 } from "../lib/ta-auth";
 import { getQuestionsForDesk, formatQuestion } from "../lib/questions-query";
+import { countWords, MAX_CONTENT_WORDS } from "../lib/word-count";
 
 const router: IRouter = Router();
 
@@ -319,6 +320,10 @@ router.post("/ta/question-groups/:id/reply", requireTa, async (req, res): Promis
 
   const body = CreateGroupReplyBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  if (countWords(body.data.body) > MAX_CONTENT_WORDS) {
+    res.status(400).json({ error: `Replies are limited to ${MAX_CONTENT_WORDS} words` });
+    return;
+  }
 
   const taName = req.taName!;
 

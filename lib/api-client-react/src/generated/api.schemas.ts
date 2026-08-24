@@ -192,8 +192,12 @@ export interface ResolveResult {
 }
 
 export interface QuestionInput {
-  /** @minLength 3 */
+  /**
+     * The question title; together with body, it may contain at most 50 words.
+     * @minLength 3
+     */
   title: string;
+  /** Optional question context; together with title, it may contain at most 50 words. */
   body?: string;
   authorName?: string;
   isAnonymous?: boolean;
@@ -202,7 +206,10 @@ export interface QuestionInput {
 }
 
 export interface ReplyInput {
-  /** @minLength 1 */
+  /**
+     * Reply text, limited to 50 words.
+     * @minLength 1
+     */
   body: string;
   authorName?: string;
   deviceId: string;
@@ -228,7 +235,10 @@ export interface GroupMemberInput {
 }
 
 export interface GroupReplyInput {
-  /** @minLength 1 */
+  /**
+     * Group reply text, limited to 50 words.
+     * @minLength 1
+     */
   body: string;
 }
 

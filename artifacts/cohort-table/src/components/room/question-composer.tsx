@@ -6,6 +6,7 @@ import { useParticipants } from '@/hooks/use-participants';
 import { useToast } from '@/hooks/use-toast';
 import { MentionInput } from './mention-input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { countWords, MAX_CONTENT_WORDS } from '@/lib/word-count';
 
 interface SimilarQuestion { id: number; title: string }
 
@@ -46,9 +47,15 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
   }, [title, roomCode]);
 
   const showSimilar = similar.length > 0 && !dismissed;
+  const wordCount = countWords(title);
+  const tooManyWords = wordCount > MAX_CONTENT_WORDS;
 
   const submit = () => {
     if (!title.trim()) return;
+    if (tooManyWords) {
+      toast({ title: `Questions are limited to ${MAX_CONTENT_WORDS} words`, variant: 'destructive' });
+      return;
+    }
     createQuestion.mutate({
       roomCode,
       data: { title: title.trim(), deviceId, isAnonymous: false, authorName },
@@ -94,11 +101,15 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
         />
         <button
           type="submit"
-          disabled={createQuestion.isPending}
+          disabled={createQuestion.isPending || tooManyWords}
           className="dark-button py-3 md:py-0 h-full min-h-[44px] disabled:opacity-50"
         >
           Ask the room <b>→</b>
         </button>
+      </div>
+
+      <div className={`mt-2 text-right text-[8px] uppercase tracking-[0.1em] ${tooManyWords ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+        {wordCount}/{MAX_CONTENT_WORDS} words{tooManyWords && ' · limit reached'}
       </div>
 
       {/* Similar questions panel */}

@@ -14,6 +14,7 @@ import {
   CreateQuestionResponse,
 } from "@workspace/api-zod";
 import { getQuestionsForRoom, formatQuestion } from "../lib/questions-query";
+import { countWords, MAX_CONTENT_WORDS } from "../lib/word-count";
 
 const router: IRouter = Router();
 
@@ -123,6 +124,11 @@ router.post("/rooms/:roomCode/questions", async (req, res): Promise<void> => {
 
   const { title, body: questionBody, authorName, isAnonymous, tags, deviceId } = body.data;
   const roomCode = params.data.roomCode;
+
+  if (countWords([title, questionBody ?? ""].join(" ")) > MAX_CONTENT_WORDS) {
+    res.status(400).json({ error: `Questions are limited to ${MAX_CONTENT_WORDS} words` });
+    return;
+  }
 
   // Ensure room exists, auto-create if not
   const [room] = await db.select().from(roomsTable).where(eq(roomsTable.roomCode, roomCode));

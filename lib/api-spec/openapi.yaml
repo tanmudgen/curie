@@ -930,8 +930,13 @@ components:
       type: object
       required: [title, deviceId]
       properties:
-        title: { type: string, minLength: 3 }
-        body: { type: string }
+        title:
+          type: string
+          minLength: 3
+          description: The question title; together with body, it may contain at most 50 words.
+        body:
+          type: string
+          description: Optional question context; together with title, it may contain at most 50 words.
         authorName: { type: string }
         isAnonymous: { type: boolean }
         tags:
@@ -943,7 +948,10 @@ components:
       type: object
       required: [body, deviceId]
       properties:
-        body: { type: string, minLength: 1 }
+        body:
+          type: string
+          minLength: 1
+          description: Reply text, limited to 50 words.
         authorName: { type: string }
         deviceId: { type: string }
 
@@ -979,7 +987,10 @@ components:
       type: object
       required: [body]
       properties:
-        body: { type: string, minLength: 1 }
+        body:
+          type: string
+          minLength: 1
+          description: Group reply text, limited to 50 words.
 
     FlagInput:
       type: object

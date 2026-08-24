@@ -34,6 +34,7 @@ import {
 } from "@workspace/api-zod";
 import { getQuestionById, formatQuestion } from "../lib/questions-query";
 import { parseTaSession } from "../lib/ta-auth";
+import { countWords, MAX_CONTENT_WORDS } from "../lib/word-count";
 
 const router: IRouter = Router();
 
@@ -129,7 +130,11 @@ router.get("/questions/:id", async (req, res): Promise<void> => {
     }
   }
 
-  res.json(GetQuestionResponse.parse({ ...question, replies, groupReply }));
+  res.json(GetQuestionResponse.parse({
+    ...question,
+    replies,
+    ...(groupReply ? { groupReply } : {}),
+  }));
 });
 
 // POST /questions/:id/resolve — question author or TA
@@ -205,6 +210,10 @@ router.post("/questions/:id/replies", async (req, res): Promise<void> => {
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
   const { body: replyBody, authorName, deviceId } = body.data;
+  if (countWords(replyBody) > MAX_CONTENT_WORDS) {
+    res.status(400).json({ error: `Replies are limited to ${MAX_CONTENT_WORDS} words` });
+    return;
+  }
 
   const taSession = parseTaSession(req);
   const isTa = !!taSession;

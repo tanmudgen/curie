@@ -106,8 +106,8 @@ export const createQuestionBodyTitleMin = 3;
 
 
 export const CreateQuestionBody = zod.object({
-  "title": zod.string().min(createQuestionBodyTitleMin),
-  "body": zod.string().optional(),
+  "title": zod.string().min(createQuestionBodyTitleMin).describe('The question title; together with body, it may contain at most 50 words.'),
+  "body": zod.string().optional().describe('Optional question context; together with title, it may contain at most 50 words.'),
   "authorName": zod.string().optional(),
   "isAnonymous": zod.boolean().optional(),
   "tags": zod.array(zod.string()).optional(),
@@ -278,7 +278,7 @@ export const CreateReplyParams = zod.object({
 
 
 export const CreateReplyBody = zod.object({
-  "body": zod.string().min(1),
+  "body": zod.string().min(1).describe('Reply text, limited to 50 words.'),
   "authorName": zod.string().optional(),
   "deviceId": zod.string()
 })
@@ -568,7 +568,7 @@ export const CreateGroupReplyParams = zod.object({
 
 
 export const CreateGroupReplyBody = zod.object({
-  "body": zod.string().min(1)
+  "body": zod.string().min(1).describe('Group reply text, limited to 50 words.')
 })
 
 export const CreateGroupReplyResponse = zod.object({

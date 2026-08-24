@@ -20,6 +20,7 @@ import { useDeviceId } from '@/hooks/use-device-id';
 import { useDisplayName } from '@/hooks/use-display-name';
 import { useParticipants } from '@/hooks/use-participants';
 import { useToast } from '@/hooks/use-toast';
+import { countWords, MAX_CONTENT_WORDS } from '@/lib/word-count';
 import { MentionInput } from './mention-input';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -59,6 +60,8 @@ export function QuestionCard({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyBody, setReplyBody] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const replyWordCount = countWords(replyBody);
+  const replyTooLong = replyWordCount > MAX_CONTENT_WORDS;
 
   useEffect(() => {
     setOptVote({ voted: !!question.viewerVoted, count: question.voteCount });
@@ -151,6 +154,10 @@ export function QuestionCard({
   const submitReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyBody.trim()) return;
+    if (replyTooLong) {
+      toast({ title: `Replies are limited to ${MAX_CONTENT_WORDS} words`, variant: 'destructive' });
+      return;
+    }
     createReply.mutate(
       { id: question.id, data: { body: replyBody, deviceId, authorName: displayName || undefined } },
       {
@@ -379,6 +386,9 @@ export function QuestionCard({
                     onSubmit={() => submitReply({ preventDefault: () => {} } as React.FormEvent)}
                     className="w-full bg-[rgba(255,255,255,0.5)] border border-border rounded-md px-3 py-2 text-[11px] outline-none focus:border-primary block"
                   />
+                  <div className={`mt-1 text-right text-[8px] uppercase tracking-[0.1em] ${replyTooLong ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                    {replyWordCount}/{MAX_CONTENT_WORDS} words{replyTooLong && ' · limit reached'}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -389,7 +399,7 @@ export function QuestionCard({
                 if (!showReplyForm) setShowReplyForm(true);
                 else submitReply({ preventDefault: () => {} } as React.FormEvent);
               }}
-              disabled={showReplyForm && (createReply.isPending || !replyBody.trim())}
+              disabled={showReplyForm && (createReply.isPending || !replyBody.trim() || replyTooLong)}
               className="dark-button h-[36px] px-5 shrink-0 self-end disabled:opacity-40"
             >
               {showReplyForm ? (createReply.isPending ? '…' : 'Send') : 'Reply'}
