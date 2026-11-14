@@ -1,36 +1,28 @@
-import { RoomPulse } from '@workspace/api-client-react';
+import type { RoomPulse } from '@workspace/api-client-react';
 
-export function PulseCard({ pulse, roomCode }: { pulse?: RoomPulse, roomCode: string }) {
+export function PulseCard({ pulse, roomCode }: { pulse?: RoomPulse; roomCode: string }) {
+  const metrics = [
+    { label: 'In the room', value: pulse?.memberCount },
+    { label: 'Open questions', value: pulse?.openQuestions },
+    { label: 'Answered today', value: pulse?.answeredToday },
+  ];
+
   return (
-    <aside className="hidden lg:block pt-2">
-      <span className="uppercase tracking-[0.16em] text-primary text-[8px] font-black">Room pulse</span>
-      <h2 className="font-serif font-normal text-[25px] leading-none tracking-[-0.03em] my-[12px] mb-[10px]">
-        The questions behind the chat.
-      </h2>
-      <p className="text-[11px] leading-[1.55] text-muted-foreground">
-        Votes gather repeated confusion into one visible place, while TAs divide the work.
-      </p>
-      
-      <div className="mt-[25px] p-[17px] border border-border rounded-[8px] bg-[rgba(250,245,233,0.48)] shadow-[0_9px_18px_rgba(58,55,43,0.06)]">
-        <div className="flex justify-between py-[10px] border-b border-border text-[9px] uppercase tracking-[0.08em] items-center">
-          <span>In the room</span>
-          <strong className="font-serif font-normal text-[18px] text-primary leading-none">{pulse?.memberCount ?? '-'}</strong>
+    <aside className="hidden min-w-0 lg:block">
+      <div className="rounded-xl bg-[var(--brand-slate)] p-5 text-[var(--brand-paper)]">
+        <h2 className="mb-5 text-2xl font-semibold tracking-tight">Room pulse</h2>
+        <dl>
+          {metrics.map(({ label, value }) => (
+            <div key={label} className="flex items-center justify-between gap-2 border-t border-white/20 py-3">
+              <dt className="text-sm">{label}</dt>
+              <dd className="font-mono text-lg font-semibold tabular-nums text-[var(--brand-periwinkle)]">{value ?? '–'}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-3 border-t border-white/20 pt-5">
+          <p className="mb-2 font-mono text-[11px] uppercase tracking-wide">Share this room</p>
+          <b className="block break-words font-mono text-xl font-medium text-[var(--brand-yellow)]">{roomCode}</b>
         </div>
-        <div className="flex justify-between py-[10px] border-b border-border text-[9px] uppercase tracking-[0.08em] items-center">
-          <span>Open questions</span>
-          <strong className="font-serif font-normal text-[18px] text-primary leading-none">{pulse?.openQuestions ?? '-'}</strong>
-        </div>
-        <div className="flex justify-between py-[10px] text-[9px] uppercase tracking-[0.08em] items-center">
-          <span>Answered today</span>
-          <strong className="font-serif font-normal text-[18px] text-primary leading-none">{pulse?.answeredToday ?? '-'}</strong>
-        </div>
-      </div>
-      
-      <div className="mt-[18px] pt-[15px] border-t border-border text-[9px] text-muted-foreground uppercase tracking-[0.05em]">
-        Share this room
-        <b className="block mt-[5px] font-serif font-normal text-[19px] tracking-[0.12em] text-foreground">
-          {roomCode}
-        </b>
       </div>
     </aside>
   );

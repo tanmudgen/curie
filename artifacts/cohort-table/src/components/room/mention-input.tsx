@@ -113,18 +113,18 @@ export function MentionInput({
 
       {open && (
         <ul
-          className="absolute z-50 bottom-full mb-1 left-0 min-w-[180px] max-w-[280px] bg-[#fdfaf5] border border-border rounded-lg shadow-[0_8px_24px_rgba(61,55,41,0.14)] overflow-hidden py-1"
+          className="absolute z-50 bottom-full mb-1 left-0 min-w-[180px] max-w-[280px] bg-popover border border-border rounded-lg shadow-lg overflow-hidden py-1"
           onMouseDown={(e) => e.preventDefault()}
         >
           {filtered.map((p, i) => (
             <li
               key={p.name}
               onMouseDown={() => pick(p)}
-              className={`flex items-center gap-2 px-3 py-[7px] cursor-pointer text-[11px] ${i === activeIdx ? 'bg-primary/10 text-primary' : 'hover:bg-primary/5'}`}
+              className={`flex items-center gap-2 px-3 py-[7px] cursor-pointer text-sm ${i === activeIdx ? 'bg-[var(--brand-periwinkle)] text-foreground' : 'hover:bg-accent/15'}`}
             >
               <span className="flex-1 font-medium truncate">{p.name}</span>
               {p.isTa && (
-                <span className="shrink-0 text-[7px] font-black uppercase tracking-wider bg-primary text-primary-foreground px-[5px] py-[2px] rounded-[2px]">
+                <span className="shrink-0 text-[11px] font-semibold font-mono uppercase tracking-wider bg-primary text-primary-foreground px-[5px] py-[2px] rounded-[2px]">
                   TGA
                 </span>
               )}

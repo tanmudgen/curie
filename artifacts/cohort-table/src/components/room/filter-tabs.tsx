@@ -16,23 +16,24 @@ export function FilterTabs({
   ] as const;
 
   return (
-    <div className="flex justify-between items-center m-[25px_3px_13px]">
-      <div className="flex gap-[6px] overflow-x-auto pb-2 md:pb-0" role="tablist">
+    <div className="my-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter questions">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id)}
-            className={`whitespace-nowrap border rounded-full px-[12px] py-[8px] text-[8px] uppercase tracking-[0.1em] cursor-pointer transition-colors
+            aria-pressed={filter === tab.id}
+            className={`whitespace-nowrap border rounded-full px-[12px] py-[8px] text-[11px] font-mono uppercase tracking-wide cursor-pointer transition-colors
               ${filter === tab.id 
-                ? 'bg-foreground border-foreground text-[#faf3e5]' 
-                : 'border-border bg-[rgba(255,255,255,0.24)] text-muted-foreground hover:border-foreground/30'
+                ? 'border-foreground bg-foreground text-primary-foreground'
+                : 'border-border bg-card text-foreground hover:border-foreground'
               }`}
           >
             {tab.label}
           </button>
         ))}
       </div>
-      <span className="hidden md:inline text-[9px] text-muted-foreground">
+      <span className="hidden md:inline text-xs text-muted-foreground">
         Sorted by upvotes · oldest first
       </span>
     </div>

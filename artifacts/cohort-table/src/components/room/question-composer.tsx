@@ -76,16 +76,14 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
   return (
     <motion.form
       onSubmit={(e) => { e.preventDefault(); submit(); }}
-      initial={{ opacity: 0, y: -85, rotate: -2, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 12, delay: 0.1 }}
-      className="relative border border-[rgba(65,55,40,0.16)] border-l-[6px] border-l-destructive rounded-[5px_17px_17px_6px] composer-bg shadow-[0_24px_48px_rgba(61,55,41,0.15),0_4px_9px_rgba(61,55,41,0.08)] p-[26px_28px_23px] sm:p-[24px_18px_18px]"
+      className="relative border border-border border-t-[5px] border-t-[var(--brand-purple)] rounded-xl composer-bg shadow-sm p-5 sm:p-7"
     >
-      <span className="absolute w-[95px] h-[24px] left-1/2 -top-[8px] -translate-x-1/2 -rotate-[1.4deg] bg-[rgba(211,195,152,0.69)] shadow-[0_1px_2px_rgba(70,59,41,0.1)]" aria-hidden="true" />
-
-      <div className="flex items-center justify-between mb-[17px]">
-        <span className="uppercase tracking-[0.15em] text-[#a9543e] text-[8px] font-black">Put a question on the table</span>
-        <small className="text-muted-foreground text-[9px]">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <span className="font-mono uppercase tracking-wider text-foreground text-[11px] font-semibold">Put a question on the table</span>
+        <small className="text-muted-foreground text-xs">
           Asking as <span className="font-semibold text-foreground">{authorName}</span>
         </small>
       </div>
@@ -97,7 +95,7 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
           participants={participants}
           placeholder="What are you stuck on?"
           onSubmit={submit}
-          className="min-w-0 w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent p-[10px_2px_12px] font-serif font-normal text-[20px] md:text-[24px] leading-[1.2] text-foreground outline-none placeholder-[rgba(23,49,58,0.36)]"
+          className="min-w-0 w-full border-0 border-b border-input bg-transparent p-[10px_2px_12px] font-sans font-semibold text-[20px] md:text-[24px] leading-[1.2] text-foreground outline-none focus:border-primary placeholder:text-muted-foreground"
         />
         <button
           type="submit"
@@ -108,7 +106,7 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
         </button>
       </div>
 
-      <div className={`mt-2 text-right text-[8px] uppercase tracking-[0.1em] ${tooManyWords ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+      <div className={`mt-2 text-right text-[11px] font-mono uppercase tracking-wide ${tooManyWords ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
         {wordCount}/{MAX_CONTENT_WORDS} words{tooManyWords && ' · limit reached'}
       </div>
 
@@ -123,15 +121,16 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
             transition={{ duration: 0.22, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="mt-4 pt-4 border-t border-[rgba(65,55,40,0.12)]">
+            <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="text-[8px] uppercase tracking-[0.15em] font-black text-[#a9543e] flex items-center gap-1.5">
+                <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-foreground flex items-center gap-1.5">
                   <span>⚠</span> Similar questions already on the table
                 </span>
                 <button
                   type="button"
+                  aria-label="Dismiss similar questions"
                   onClick={() => setDismissed(true)}
-                  className="text-[9px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 >
                   ✕
                 </button>
@@ -145,14 +144,14 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
                         const el = document.getElementById(`question-${q.id}`);
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }}
-                      className="block text-[13px] font-serif text-foreground/80 leading-snug pl-2 border-l-2 border-[rgba(169,84,62,0.35)] hover:text-primary hover:border-primary transition-colors cursor-pointer underline-offset-2 hover:underline"
+                      className="block text-[13px] font-sans text-foreground/80 leading-snug pl-2 border-l-2 border-accent hover:text-primary hover:border-primary transition-colors cursor-pointer underline-offset-2 hover:underline"
                     >
                       {q.title}
                     </a>
                   </li>
                 ))}
               </ul>
-              <p className="mt-2.5 text-[9px] text-muted-foreground">
+              <p className="mt-2.5 text-xs text-muted-foreground">
                 Vote or follow those instead — or post if your question is different.
               </p>
             </div>

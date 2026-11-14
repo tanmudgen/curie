@@ -1,3 +1,4 @@
+import { questionStatus } from './question-status';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Question } from '@workspace/api-client-react';
@@ -44,11 +45,8 @@ function SpotlightContent({
   const targetLeft = (vw - targetW) / 2;
   const targetTop = Math.max(32, Math.min((vh - 560) / 2, vh * 0.12));
 
-  let accentColor = 'var(--coral)';
-  if (question.status === 'answered') accentColor = 'var(--green)';
-  else if (question.risingScore && question.risingScore > 10) accentColor = 'var(--gold)';
-
   const timeAgo = formatDistanceToNow(new Date(question.createdAt), { addSuffix: true });
+  const status = questionStatus(question);
 
   return (
     <>
@@ -59,7 +57,7 @@ function SpotlightContent({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.22 }}
-        className="fixed inset-0 z-[90] bg-[rgba(28,22,11,0.62)]"
+        className="fixed inset-0 z-[90] bg-foreground/60"
         style={{ backdropFilter: 'blur(3px)' }}
         onClick={onClose}
       />
@@ -67,6 +65,9 @@ function SpotlightContent({
       {/* Card shell — flies from list position to center */}
       <motion.div
         key="card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="spotlight-title"
         initial={{
           top: originRect.top,
           left: originRect.left,
@@ -90,7 +91,7 @@ function SpotlightContent({
           maxHeight: `${vh - targetTop - 40}px`,
           overflow: 'auto',
         }}
-        className="card-bg rounded-[9px_22px_20px_7px] border border-[rgba(23,49,58,0.2)] shadow-[0_48px_96px_rgba(28,22,11,0.38),0_12px_28px_rgba(28,22,11,0.22)]"
+        className="card-bg rounded-xl border border-border shadow-2xl"
       >
         {/* Content fades in once the card starts moving */}
         <motion.div
@@ -98,47 +99,41 @@ function SpotlightContent({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18, delay: 0.06 }}
-          className="grid grid-cols-[90px_1fr] min-h-0"
+          className="grid grid-cols-[48px_minmax(0,1fr)] sm:grid-cols-[78px_minmax(0,1fr)] min-h-0"
         >
           {/* Vote column */}
-          <div className="border-r border-border bg-[rgba(222,213,195,0.38)] flex flex-col items-center justify-start pt-8 p-4 shrink-0">
+          <div className="border-r border-border bg-[var(--brand-paper)] flex flex-col items-center justify-start px-1 py-6 sm:px-3 shrink-0">
             <div
-              className={`w-[58px] h-[72px] border rounded-[50%_50%_10px_10px] flex flex-col items-center justify-center shadow-[0_6px_12px_rgba(58,55,43,0.1)]
+              className={`w-10 h-14 sm:w-12 sm:h-16 border rounded-md flex flex-col items-center justify-center shadow-sm
                 ${question.viewerVoted
-                  ? 'bg-primary text-[#fff8e9] border-primary'
-                  : 'bg-[#faf4e6] text-primary border-[rgba(44,114,93,0.3)]'}`}
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-primary border-input'}`}
             >
               <span className="text-[15px] leading-none mb-[3px]">↑</span>
-              <strong className="font-serif font-normal text-[30px] leading-none">{question.voteCount}</strong>
+              <strong className="font-sans font-semibold text-[30px] leading-none">{question.voteCount}</strong>
             </div>
-            <small className="mt-[10px] text-[7px] uppercase tracking-[0.09em] text-muted-foreground text-center leading-[1.3]">
+            <small className="mt-[10px] text-[11px] font-mono uppercase tracking-wide text-muted-foreground text-center leading-[1.3]">
               votes
             </small>
           </div>
 
           {/* Content column */}
           <div
-            className="p-[26px_32px_28px] border-t-[7px] relative"
-            style={{ borderTopColor: accentColor }}
+            className="p-4 sm:p-7 border-t-4 relative"
+            style={{ borderTopColor: status.color }}
           >
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-5 w-7 h-7 rounded-full border border-border/60 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors text-[16px] leading-none flex items-center justify-center"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full border border-border text-muted-foreground hover:border-destructive hover:text-destructive transition-colors text-[16px] leading-none flex items-center justify-center"
               aria-label="Close spotlight"
             >
               ×
             </button>
 
             {/* Status / meta */}
-            <div className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground mb-3 flex items-center gap-2 flex-wrap">
-              <b style={{ color: accentColor }}>
-                {question.status === 'answered'
-                  ? 'Answered'
-                  : question.risingScore && question.risingScore > 10
-                  ? 'Rising'
-                  : 'Unanswered'}
-              </b>
+            <div className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground pr-8 mb-3 flex items-center gap-2 flex-wrap">
+              <b className="text-foreground">{status.label}</b>
               <span>·</span>
               <span>asked by {question.authorLabel}</span>
               <span>·</span>
@@ -153,7 +148,8 @@ function SpotlightContent({
 
             {/* Big title */}
             <h2
-              className="font-serif font-normal leading-[1.05] tracking-[-0.03em] mt-[8px] mb-[18px]"
+              id="spotlight-title"
+              className="font-sans font-semibold break-words leading-tight tracking-[-0.03em] mt-[8px] mb-[18px]"
               style={{ fontSize: 'clamp(28px, 4vw, 48px)' }}
             >
               {question.title}
@@ -172,7 +168,7 @@ function SpotlightContent({
                 {question.tags.map(tag => (
                   <span
                     key={tag}
-                    className="border border-border rounded-full px-[10px] py-[5px] text-[8px] uppercase tracking-[0.08em] text-muted-foreground"
+                    className="border border-border rounded-full px-[10px] py-[5px] text-[11px] font-mono uppercase tracking-wide text-muted-foreground"
                   >
                     {tag}
                   </span>
@@ -181,15 +177,15 @@ function SpotlightContent({
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-[14px] border-t border-border/50">
+            <div className="flex items-center justify-between pt-[14px] border-t border-border">
               {question.claimedByTa && (
-                <span className="text-[8px] uppercase tracking-widest text-destructive font-black border border-destructive px-2 py-1 rounded-[2px] transform -rotate-1">
+                <span className="text-[11px] font-mono uppercase tracking-wide text-destructive font-semibold border border-destructive px-2 py-1 rounded-[2px] ">
                   {question.status === 'answered' ? 'Resolved' : `Claimed · ${question.claimedByTa}`}
                 </span>
               )}
               <button
                 onClick={onClose}
-                className="ml-auto text-[7px] uppercase tracking-widest text-muted-foreground border border-border rounded-full px-[10px] py-[4px] hover:border-primary hover:text-primary transition-colors"
+                className="ml-auto text-[11px] font-mono uppercase tracking-wide text-muted-foreground border border-border rounded-full px-[10px] py-[4px] hover:border-primary hover:text-primary transition-colors"
               >
                 ↩ Back to queue
               </button>
