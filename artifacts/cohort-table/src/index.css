@@ -120,6 +120,11 @@
   position: relative;
 }
 
+.card-bg,
+.composer-bg {
+  @apply bg-card;
+}
+
 .dark-button {
   display: inline-flex;
   align-items: center;

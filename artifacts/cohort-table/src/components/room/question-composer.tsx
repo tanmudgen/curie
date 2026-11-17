@@ -100,7 +100,7 @@ export function QuestionComposer({ roomCode, onSuccess }: { roomCode: string, on
         <button
           type="submit"
           disabled={createQuestion.isPending || tooManyWords}
-          className="dark-button py-3 md:py-0 h-full min-h-[44px] disabled:opacity-50"
+          className="dark-button gap-2 py-3 md:py-0 h-full min-h-[44px] disabled:opacity-50"
         >
           Ask the room <b>→</b>
         </button>
