@@ -64,7 +64,7 @@ export function RoomPage() {
   if (!room) {
     return (
       <main className="world flex flex-col items-center justify-center min-h-[100dvh] gap-4 text-center p-6">
-        <h1 className="font-serif text-3xl">Room not found</h1>
+        <h1 className="font-sans text-3xl">Room not found</h1>
         <p className="text-muted-foreground">The room "{roomCode}" does not exist or is inactive.</p>
         <button onClick={() => window.history.back()} className="dark-button py-2">Go back</button>
       </main>
@@ -75,7 +75,7 @@ export function RoomPage() {
     <main className="world">
       <RoomHeader room={room} />
       
-      <section className="w-[min(1100px,95vw)] m-auto grid grid-cols-1 lg:grid-cols-[minmax(180px,210px)_minmax(0,790px)] justify-center gap-[clamp(22px,3vw,48px)] p-[22px_0_70px] lg:p-[36px_0_70px] max-w-[1100px]">
+      <section className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 px-4 pt-6 pb-16 sm:px-8 lg:grid-cols-[minmax(200px,248px)_minmax(0,1fr)] lg:gap-10 lg:pt-10">
         
         <PulseCard pulse={pulse} roomCode={roomCode!} />
         
@@ -94,7 +94,7 @@ export function RoomPage() {
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-8 text-center text-muted-foreground text-[11px] uppercase tracking-widest border border-dashed border-border rounded-lg bg-[rgba(255,255,255,0.4)]"
+                className="p-8 text-center text-muted-foreground text-sm font-mono uppercase tracking-wide border border-dashed border-border rounded-lg bg-card"
               >
                 No questions on the table.
               </motion.div>

@@ -15,6 +15,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDeviceId } from '@/hooks/use-device-id';
+import { BrandLogo } from '@/components/brand-logo';
 import { RoomHeader } from '@/components/room/room-header';
 import { PulseCard } from '@/components/room/pulse-card';
 import { QuestionComposer } from '@/components/room/question-composer';
@@ -71,12 +72,9 @@ function TaLoginPage({ roomCode }: { roomCode: string }) {
 
   return (
     <main className="world min-h-[100dvh] flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border/40">
-        <div className="flex items-center gap-2 uppercase tracking-[0.18em] text-[9px] font-[850]">
-          <span className="w-[8px] h-[8px] rounded-full bg-primary shadow-[0_0_0_2px_hsl(var(--background)),0_0_0_3px_hsl(var(--primary))]" />
-          /Curie
-        </div>
-        <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">{roomCode}</span>
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <BrandLogo className="w-[125px]" />
+        <span className="text-xs font-mono uppercase tracking-wide text-muted-foreground font-bold">{roomCode}</span>
       </header>
 
       <div className="flex-1 flex items-center justify-center p-6">
@@ -87,42 +85,43 @@ function TaLoginPage({ roomCode }: { roomCode: string }) {
           className="w-full max-w-sm"
         >
           <div className="text-center mb-8">
-            <span className="inline-block uppercase tracking-[0.15em] text-[9px] font-black text-primary mb-3">
+            <span className="inline-block font-mono uppercase tracking-wider text-xs font-semibold text-primary mb-3">
               TA Desk · {roomCode}
             </span>
-            <h1 className="font-serif text-3xl tracking-tight">Sign in to your desk.</h1>
+            <h1 className="font-sans text-4xl font-semibold tracking-tight">Sign in to your desk.</h1>
           </div>
 
           <form
             onSubmit={handleLogin}
-            className="relative border border-[rgba(65,55,40,0.16)] border-l-[6px] border-l-primary rounded-[5px_17px_17px_6px] composer-bg shadow-[0_24px_48px_rgba(61,55,41,0.15),0_4px_9px_rgba(61,55,41,0.08)] p-8"
+            className="relative border border-border border-t-[5px] border-t-accent rounded-xl composer-bg shadow-sm p-8"
           >
-            <span className="absolute w-[80px] h-[22px] left-1/2 -top-[7px] -translate-x-1/2 -rotate-[1.2deg] bg-[rgba(211,195,152,0.69)] shadow-[0_1px_2px_rgba(70,59,41,0.1)]" aria-hidden="true" />
-            <label className="block uppercase tracking-[0.15em] text-primary text-[8px] font-black mb-5">TA Credentials</label>
+            <label className="block font-mono uppercase tracking-wider text-primary text-[11px] font-semibold mb-5">TA Credentials</label>
 
             <div className="flex flex-col gap-5">
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                aria-label="Your name"
                 placeholder="Your name"
                 autoComplete="name"
                 required
-                className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
+                className="w-full border-0 border-b border-input bg-transparent py-2 px-1 font-sans text-xl outline-none focus:border-primary placeholder:text-muted-foreground"
               />
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                aria-label="TA password"
                 placeholder="TA password"
                 autoComplete="current-password"
                 required
-                className="w-full border-0 border-b border-[rgba(33,49,43,0.24)] bg-transparent py-2 px-1 font-serif text-xl outline-none placeholder:text-[rgba(23,49,58,0.36)]"
+                className="w-full border-0 border-b border-input bg-transparent py-2 px-1 font-sans text-xl outline-none focus:border-primary placeholder:text-muted-foreground"
               />
               <AnimatePresence>
                 {error && (
                   <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="text-[10px] text-destructive tracking-wide -mt-2">
+                    className="text-sm text-destructive tracking-wide -mt-2">
                     {error}
                   </motion.p>
                 )}
@@ -199,27 +198,27 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
   return (
     <main className="world">
       <RoomHeader room={room} extra={
-        <div className="flex items-center gap-2">
-          <span className="text-[8px] uppercase tracking-widest text-muted-foreground mr-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground mr-1">
             TA · {taName}
           </span>
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="text-[8px] uppercase tracking-widest border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
+            className="text-[11px] font-mono uppercase tracking-wide border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
           >
             {downloading ? 'Exporting…' : '↓ Export'}
           </button>
           <button
             onClick={handleLogout}
-            className="text-[8px] uppercase tracking-widest border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
+            className="text-[11px] font-mono uppercase tracking-wide border border-border rounded-full px-3 py-1.5 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
           >
             Log out
           </button>
         </div>
       } />
 
-      <section className="w-[min(1100px,95vw)] m-auto grid grid-cols-1 lg:grid-cols-[minmax(180px,210px)_minmax(0,790px)] justify-center gap-[clamp(22px,3vw,48px)] p-[22px_0_70px] lg:p-[36px_0_70px] max-w-[1100px]">
+      <section className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 px-4 pt-6 pb-16 sm:px-8 lg:grid-cols-[minmax(200px,248px)_minmax(0,1fr)] lg:gap-10 lg:pt-10">
 
         <PulseCard pulse={pulse} roomCode={roomCode} />
 
@@ -251,7 +250,7 @@ function TaRoomPage({ roomCode, taName }: { roomCode: string; taName: string }) 
             </AnimatePresence>
             {questions?.length === 0 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="p-8 text-center text-muted-foreground text-[11px] uppercase tracking-widest border border-dashed border-border rounded-lg bg-[rgba(255,255,255,0.4)]">
+                className="p-8 text-center text-muted-foreground text-sm font-mono uppercase tracking-wide border border-dashed border-border rounded-lg bg-card">
                 No questions on the table.
               </motion.div>
             )}
